@@ -1,0 +1,51 @@
+erDiagram
+    ACCOUNT {
+        string id PK
+        string name
+        string type
+        decimal initial_balance
+        boolean active
+        datetime created_at
+    }
+
+    CATEGORY {
+        string id PK
+        string name
+        string type
+        boolean active
+    }
+
+    TRANSACTION {
+        string id PK
+        string type
+        decimal amount
+        date date
+        string account_id FK
+        string from_account_id FK
+        string to_account_id FK
+        string category_id FK
+        string note
+        datetime created_at
+    }
+
+    MONTHLY_BUDGET {
+        string id PK
+        string category_id FK
+        int month
+        int year
+        decimal budget_amount
+    }
+
+    ECONOMIC_DATA {
+        string id PK
+        int month
+        int year
+        decimal dollar_official
+        decimal inflation_monthly
+    }
+
+    ACCOUNT ||--o{ TRANSACTION : "owns movement"
+    ACCOUNT ||--o{ TRANSACTION : "transfer source"
+    ACCOUNT ||--o{ TRANSACTION : "transfer destination"
+    CATEGORY ||--o{ TRANSACTION : "categorizes"
+    CATEGORY ||--o{ MONTHLY_BUDGET : "has budget"
