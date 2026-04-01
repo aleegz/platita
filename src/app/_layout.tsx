@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { Stack } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
 
 import { DatabaseProvider } from '../database/client/provider';
 import {
@@ -9,6 +10,13 @@ import {
 } from '../features/settings';
 import { enableLayoutAnimations } from '../lib/motion';
 import { colors } from '../theme';
+
+void SplashScreen.preventAutoHideAsync().catch(() => {});
+
+SplashScreen.setOptions({
+  duration: 300,
+  fade: true,
+});
 
 export default function RootLayout() {
   useEffect(() => {
@@ -29,6 +37,16 @@ function RootNavigation() {
     isSubmitting,
     saveProfile,
   } = useUserProfileMutations();
+
+  useEffect(() => {
+    if (!isLoading) {
+      void SplashScreen.hideAsync();
+    }
+  }, [isLoading]);
+
+  if (isLoading) {
+    return null;
+  }
 
   return (
     <>
@@ -92,7 +110,7 @@ function RootNavigation() {
         onSubmit={async (values) => {
           await saveProfile(values);
         }}
-        visible={!isLoading && profile === null}
+        visible={profile === null}
       />
     </>
   );

@@ -15,6 +15,19 @@
             "Cross-Origin-Opener-Policy": "same-origin"
           }
         }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#0F1115",
+          "image": "./assets/splash.png",
+          "dark": {
+            "backgroundColor": "#0F1115",
+            "image": "./assets/splash.png"
+          },
+          "imageWidth": 180,
+          "resizeMode": "contain"
+        }
       ]
     ],
     "experiments": {
