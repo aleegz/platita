@@ -4,6 +4,7 @@
     "slug": "platita",
     "version": "0.1.0",
     "scheme": "platita",
+    "icon": "./assets/app-icon.png",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
     "plugins": [
@@ -20,18 +21,38 @@
         "expo-splash-screen",
         {
           "backgroundColor": "#0F1115",
+          "resizeMode": "cover",
           "image": "./assets/splash.png",
+          "android": {
+            "backgroundColor": "#0F1115",
+            "image": "./assets/splash.png",
+            "resizeMode": "cover"
+          },
+          "ios": {
+            "backgroundColor": "#0F1115",
+            "image": "./assets/splash.png",
+            "resizeMode": "cover"
+          },
           "dark": {
             "backgroundColor": "#0F1115",
             "image": "./assets/splash.png"
-          },
-          "imageWidth": 180,
-          "resizeMode": "contain"
+          }
         }
       ]
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "ios": {
+      "icon": "./assets/app-icon.png"
+    },
+    "android": {
+      "icon": "./assets/app-icon.png",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "monochromeImage": "./assets/adaptive-icon-monochrome.png",
+        "backgroundColor": "#0F1115"
+      }
     },
     "web": {
       "bundler": "metro"
