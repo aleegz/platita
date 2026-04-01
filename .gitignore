@@ -61,3 +61,6 @@ credentials.json
 Thumbs.db
 .idea/
 .vscode/
+
+# Prompts and context files
+docs/base/
