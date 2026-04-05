@@ -21,21 +21,20 @@
         "expo-splash-screen",
         {
           "backgroundColor": "#0F1115",
-          "resizeMode": "cover",
-          "image": "./assets/splash.png",
+          "resizeMode": "contain",
+          "image": "./assets/logo.png",
+          "imageWidth": 288,
           "android": {
             "backgroundColor": "#0F1115",
-            "image": "./assets/splash.png",
-            "resizeMode": "cover"
+            "image": "./assets/logo.png",
+            "imageWidth": 288,
+            "resizeMode": "contain"
           },
           "ios": {
             "backgroundColor": "#0F1115",
             "image": "./assets/splash.png",
-            "resizeMode": "cover"
-          },
-          "dark": {
-            "backgroundColor": "#0F1115",
-            "image": "./assets/splash.png"
+            "resizeMode": "cover",
+            "enableFullScreenImage_legacy": true
           }
         }
       ]
@@ -47,6 +46,7 @@
       "icon": "./assets/app-icon.png"
     },
     "android": {
+      "package": "com.aleegz.platita",
       "icon": "./assets/app-icon.png",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
@@ -56,6 +56,17 @@
     },
     "web": {
       "bundler": "metro"
+    },
+    "extra": {
+      "router": {
+        "headers": {
+          "Cross-Origin-Embedder-Policy": "credentialless",
+          "Cross-Origin-Opener-Policy": "same-origin"
+        }
+      },
+      "eas": {
+        "projectId": "9d36f590-d006-48ef-8766-5ea425890146"
+      }
     }
   }
 }
