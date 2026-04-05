@@ -1,4 +1,4 @@
-import type { ComponentProps } from 'react';
+import type { ComponentProps, PropsWithChildren } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -24,6 +24,7 @@ import {
   Screen,
   SheetHeader,
   StateCard,
+  SurfaceCard,
 } from '../../../components';
 import { animateNextLayout } from '../../../lib/motion';
 import { colors } from '../../../theme';
@@ -47,6 +48,7 @@ type TransactionFormProps = {
   accounts: Account[];
   categories: Category[];
   requireConfirmation?: boolean;
+  groupFieldsInCards?: boolean;
   isLoadingReferences?: boolean;
   referenceErrorMessage?: string | null;
   errorMessage?: string | null;
@@ -64,6 +66,7 @@ export function TransactionForm({
   accounts,
   categories,
   requireConfirmation = false,
+  groupFieldsInCards = false,
   isLoadingReferences = false,
   referenceErrorMessage,
   errorMessage,
@@ -175,53 +178,66 @@ export function TransactionForm({
             />
           ) : null}
 
-          <View style={styles.fieldGroup}>
-            <FormFieldLabel iconName="swap-horizontal-outline" label="Tipo" />
-            <Text style={styles.helperText}>
-              {getTransactionTypeDescription(selectedType)}
-            </Text>
-            <Controller
-              control={control}
-              name="type"
-              render={({ field }) => (
-                <View style={styles.optionGrid}>
-                  {transactionTypeOptions.map((option) => {
-                    const isSelected = field.value === option.value;
+          <FormSectionCard
+            description="Elige cómo impactará este movimiento en tus cuentas."
+            enabled={groupFieldsInCards}
+            iconName="swap-horizontal-outline"
+            title="Tipo de movimiento"
+          >
+            <View style={styles.fieldGroup}>
+              <FormFieldLabel iconName="swap-horizontal-outline" label="Tipo" />
+              <Text style={styles.helperText}>
+                {getTransactionTypeDescription(selectedType)}
+              </Text>
+              <Controller
+                control={control}
+                name="type"
+                render={({ field }) => (
+                  <View style={styles.optionGrid}>
+                    {transactionTypeOptions.map((option) => {
+                      const isSelected = field.value === option.value;
 
-                    return (
-                      <Pressable
-                        key={option.value}
-                        onPress={() => field.onChange(option.value)}
-                        style={[
-                          styles.choiceCard,
-                          isSelected ? styles.choiceCardSelected : null,
-                        ]}
-                      >
-                        <Ionicons
-                          color={isSelected ? colors.primaryText : colors.text}
-                          name={getTransactionTypeIconName(option.value)}
-                          size={18}
-                        />
-                        <Text
+                      return (
+                        <Pressable
+                          key={option.value}
+                          onPress={() => field.onChange(option.value)}
                           style={[
-                            styles.choiceLabel,
-                            isSelected ? styles.choiceLabelSelected : null,
+                            styles.choiceCard,
+                            isSelected ? styles.choiceCardSelected : null,
                           ]}
                         >
-                          {option.label}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
-                </View>
-              )}
-            />
-            {errors.type?.message ? (
-              <Text style={styles.errorText}>{errors.type.message}</Text>
-            ) : null}
-          </View>
+                          <Ionicons
+                            color={isSelected ? colors.primaryText : colors.text}
+                            name={getTransactionTypeIconName(option.value)}
+                            size={18}
+                          />
+                          <Text
+                            style={[
+                              styles.choiceLabel,
+                              isSelected ? styles.choiceLabelSelected : null,
+                            ]}
+                          >
+                            {option.label}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                )}
+              />
+              {errors.type?.message ? (
+                <Text style={styles.errorText}>{errors.type.message}</Text>
+              ) : null}
+            </View>
+          </FormSectionCard>
 
-          <View style={styles.fieldGroup}>
+          <FormSectionCard
+            description="Carga el importe que quieres registrar."
+            enabled={groupFieldsInCards}
+            iconName="cash-outline"
+            title="Monto"
+          >
+            <View style={styles.fieldGroup}>
             <FormFieldLabel iconName="cash-outline" label="Monto" />
             <Controller
               control={control}
@@ -256,10 +272,21 @@ export function TransactionForm({
             {errors.amount?.message ? (
               <Text style={styles.errorText}>{errors.amount.message}</Text>
             ) : null}
-          </View>
+            </View>
+          </FormSectionCard>
 
-          {selectedType === 'transfer' ? (
-            <>
+          <FormSectionCard
+            description={
+              selectedType === 'transfer'
+                ? 'Define desde qué cuenta sale el dinero y a cuál entra.'
+                : 'Selecciona la cuenta que impacta y la categoría asociada.'
+            }
+            enabled={groupFieldsInCards}
+            iconName={selectedType === 'transfer' ? 'swap-horizontal-outline' : 'wallet-outline'}
+            title={selectedType === 'transfer' ? 'Cuentas involucradas' : 'Cuenta y categoría'}
+          >
+            {selectedType === 'transfer' ? (
+              <>
               <AccountSelectionField
                 accounts={accounts}
                 control={control}
@@ -289,48 +316,63 @@ export function TransactionForm({
                 control={control}
                 errorMessage={errors.categoryId?.message}
               />
-            </>
-          )}
+              </>
+            )}
+          </FormSectionCard>
 
-          <View style={styles.fieldGroup}>
-            <FormFieldLabel iconName="calendar-outline" label="Fecha" />
-            <Controller
-              control={control}
-              name="date"
-              render={({ field }) => (
-                <DateField
-                  errorMessage={errors.date?.message}
-                  value={field.value}
-                  onBlur={field.onBlur}
-                  onChange={field.onChange}
-                />
-              )}
-            />
-          </View>
+          <FormSectionCard
+            description="Elige la fecha que corresponde a este movimiento."
+            enabled={groupFieldsInCards}
+            iconName="calendar-outline"
+            title="Fecha"
+          >
+            <View style={styles.fieldGroup}>
+              <FormFieldLabel iconName="calendar-outline" label="Fecha" />
+              <Controller
+                control={control}
+                name="date"
+                render={({ field }) => (
+                  <DateField
+                    errorMessage={errors.date?.message}
+                    value={field.value}
+                    onBlur={field.onBlur}
+                    onChange={field.onChange}
+                  />
+                )}
+              />
+            </View>
+          </FormSectionCard>
 
-          <View style={styles.fieldGroup}>
-            <FormFieldLabel iconName="document-text-outline" label="Nota" />
-            <Controller
-              control={control}
-              name="note"
-              render={({ field }) => (
-                <TextInput
-                  multiline
-                  numberOfLines={3}
-                  onBlur={field.onBlur}
-                  onChangeText={field.onChange}
-                  placeholder="Opcional"
-                  placeholderTextColor={colors.muted}
-                  style={[styles.input, styles.textArea]}
-                  textAlignVertical="top"
-                  value={field.value}
-                />
-              )}
-            />
-            {errors.note?.message ? (
-              <Text style={styles.errorText}>{errors.note.message}</Text>
-            ) : null}
-          </View>
+          <FormSectionCard
+            description="Agrega contexto extra para recordar mejor este movimiento."
+            enabled={groupFieldsInCards}
+            iconName="document-text-outline"
+            title="Notas"
+          >
+            <View style={styles.fieldGroup}>
+              <FormFieldLabel iconName="document-text-outline" label="Nota" />
+              <Controller
+                control={control}
+                name="note"
+                render={({ field }) => (
+                  <TextInput
+                    multiline
+                    numberOfLines={3}
+                    onBlur={field.onBlur}
+                    onChangeText={field.onChange}
+                    placeholder="Opcional"
+                    placeholderTextColor={colors.muted}
+                    style={[styles.input, styles.textArea]}
+                    textAlignVertical="top"
+                    value={field.value}
+                  />
+                )}
+              />
+              {errors.note?.message ? (
+                <Text style={styles.errorText}>{errors.note.message}</Text>
+              ) : null}
+            </View>
+          </FormSectionCard>
 
           {isLoadingReferences ? (
             <StateCard
@@ -423,6 +465,40 @@ export function TransactionForm({
       </Screen>
       {confirmationModal}
     </>
+  );
+}
+
+type FormSectionCardProps = PropsWithChildren<{
+  title: string;
+  description: string;
+  iconName: IconName;
+  enabled: boolean;
+}>;
+
+function FormSectionCard({
+  title,
+  description,
+  iconName,
+  enabled,
+  children,
+}: FormSectionCardProps) {
+  if (!enabled) {
+    return <>{children}</>;
+  }
+
+  return (
+    <SurfaceCard style={styles.sectionCard}>
+      <View style={styles.sectionCardHeader}>
+        <View style={styles.sectionCardIcon}>
+          <Ionicons color={colors.text} name={iconName} size={18} />
+        </View>
+        <View style={styles.sectionCardCopy}>
+          <Text style={styles.sectionCardTitle}>{title}</Text>
+          <Text style={styles.sectionCardDescription}>{description}</Text>
+        </View>
+      </View>
+      <View style={styles.sectionCardContent}>{children}</View>
+    </SurfaceCard>
   );
 }
 
@@ -1035,6 +1111,41 @@ const styles = StyleSheet.create({
   },
   sheetForm: {
     gap: 22,
+  },
+  sectionCard: {
+    gap: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+  },
+  sectionCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  sectionCardIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surfaceAccent,
+  },
+  sectionCardCopy: {
+    flex: 1,
+    gap: 4,
+  },
+  sectionCardTitle: {
+    color: colors.text,
+    fontSize: 17,
+    fontWeight: '700',
+  },
+  sectionCardDescription: {
+    color: colors.muted,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  sectionCardContent: {
+    gap: 18,
   },
   fieldGroup: {
     gap: 8,
