@@ -1,4 +1,4 @@
-import type { Account, Transaction } from '../../types/domain';
+import { isCreditAccountType, type Account, type Transaction } from '../../types/domain';
 
 import type {
   DashboardAccountSnapshot,
@@ -18,8 +18,11 @@ export function buildAccountSnapshot(
   transactions: Transaction[]
 ): DashboardAccountSnapshot {
   const totals = calculateAccountTotals(account.id, transactions);
+  const openingBalance = isCreditAccountType(account.type)
+    ? -account.initialBalance
+    : account.initialBalance;
   const currentBalance =
-    account.initialBalance +
+    openingBalance +
     totals.income +
     totals.yield -
     totals.expense +
@@ -40,7 +43,10 @@ export function calculateTotalMoneyAvailable(
   snapshots: DashboardAccountSnapshot[]
 ) {
   return snapshots.reduce(
-    (total, accountSnapshot) => total + accountSnapshot.currentBalance,
+    (total, accountSnapshot) =>
+      isCreditAccountType(accountSnapshot.type)
+        ? total
+        : total + accountSnapshot.currentBalance,
     0
   );
 }

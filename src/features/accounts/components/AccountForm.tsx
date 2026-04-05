@@ -26,6 +26,9 @@ import { colors } from '../../../theme';
 import {
   accountTypeOptions,
   defaultAccountFormValues,
+  getAccountOpeningBalanceHelperText,
+  getAccountOpeningBalanceLabel,
+  getAccountOpeningBalancePreviewLabel,
   type SaveAccountInput,
 } from '../types';
 import { accountFormSchema, type AccountFormValues } from '../schema';
@@ -63,11 +66,17 @@ export function AccountForm({
   const {
     control,
     handleSubmit,
+    watch,
     formState: { errors },
   } = useForm<AccountFormValues>({
     resolver: zodResolver(accountFormSchema),
     defaultValues,
   });
+  const selectedType = watch('type');
+  const openingBalanceLabel = getAccountOpeningBalanceLabel(selectedType);
+  const openingBalanceHelperText = getAccountOpeningBalanceHelperText(selectedType);
+  const openingBalancePreviewLabel =
+    getAccountOpeningBalancePreviewLabel(selectedType);
 
   return (
     <Screen
@@ -180,7 +189,7 @@ export function AccountForm({
             </View>
 
             <View style={styles.fieldGroup}>
-              <FormFieldLabel iconName="cash-outline" label="Saldo inicial" />
+              <FormFieldLabel iconName="cash-outline" label={openingBalanceLabel} />
               <Controller
                 control={control}
                 name="initialBalance"
@@ -199,15 +208,14 @@ export function AccountForm({
                   />
                 )}
               />
-              <Text style={styles.helperText}>
-                Escribe solo números. Los últimos dos dígitos son los centavos.
-              </Text>
+              <Text style={styles.helperText}>{openingBalanceHelperText}</Text>
               <Controller
                 control={control}
                 name="initialBalance"
                 render={({ field }) => (
                   <Text style={styles.previewText}>
-                    Vista previa: {currencyFormatter.format(field.value / 100)}
+                    {openingBalancePreviewLabel}:{' '}
+                    {currencyFormatter.format(field.value / 100)}
                   </Text>
                 )}
               />

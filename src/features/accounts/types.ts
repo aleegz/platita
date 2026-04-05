@@ -1,10 +1,16 @@
-import type { Account, AccountType, MoneyInCents } from '../../types/domain';
+import {
+  isCreditAccountType,
+  type Account,
+  type AccountType,
+  type MoneyInCents,
+} from '../../types/domain';
 
 export const accountTypeValues = [
   'cash',
   'bank',
   'wallet',
   'investment',
+  'credit',
 ] as const;
 
 export type SaveAccountInput = {
@@ -38,8 +44,13 @@ export const accountTypeOptions: readonly AccountTypeOption[] = [
   },
   {
     value: 'investment',
-    label: 'Inversion',
-    description: 'Fondos, brokers o cuentas de inversion.',
+    label: 'Inversión',
+    description: 'Fondos, brokers o cuentas de inversión.',
+  },
+  {
+    value: 'credit',
+    label: 'Crédito',
+    description: 'Tarjetas o líneas de crédito que registran deuda pendiente.',
   },
 ] as const;
 
@@ -54,6 +65,22 @@ export function getAccountTypeLabel(type: AccountType) {
   const option = accountTypeOptions.find((item) => item.value === type);
 
   return option ? option.label : type;
+}
+
+export function getAccountOpeningBalanceLabel(type: AccountType) {
+  return isCreditAccountType(type) ? 'Deuda inicial' : 'Saldo inicial';
+}
+
+export function getAccountOpeningBalanceHelperText(type: AccountType) {
+  return isCreditAccountType(type)
+    ? 'Carga la deuda con la que arranca la tarjeta. Escribe solo números y los últimos dos dígitos son los centavos.'
+    : 'Escribe solo números. Los últimos dos dígitos son los centavos.';
+}
+
+export function getAccountOpeningBalancePreviewLabel(type: AccountType) {
+  return isCreditAccountType(type)
+    ? 'Vista previa de deuda'
+    : 'Vista previa';
 }
 
 export function toAccountFormValues(account: Account): SaveAccountInput {

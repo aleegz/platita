@@ -55,7 +55,7 @@ export default function NewMovementScreen() {
       accounts={accounts}
       categories={categories}
       defaultValues={createDefaultTransactionFormValues()}
-      description="Carga ingresos, gastos, transferencias y rendimientos en tu base local."
+      description="Carga ingresos, gastos, transferencias, pagos de tarjeta y rendimientos en tu base local."
       errorMessage={errorMessage}
       isLoadingReferences={isLoading}
       isSubmitting={isSubmitting}

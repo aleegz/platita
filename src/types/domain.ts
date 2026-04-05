@@ -3,7 +3,7 @@ export type IsoDateString = string;
 export type MoneyInCents = number;
 export type BasisPoints = number;
 
-export type AccountType = 'cash' | 'bank' | 'wallet' | 'investment';
+export type AccountType = 'cash' | 'bank' | 'wallet' | 'investment' | 'credit';
 export type CategoryType = 'income' | 'expense' | 'yield';
 export type TransactionType = 'income' | 'expense' | 'transfer' | 'yield';
 
@@ -76,3 +76,7 @@ export type UserProfile = {
   createdAt: IsoDateString;
   updatedAt: IsoDateString;
 };
+
+export function isCreditAccountType(type: AccountType) {
+  return type === 'credit';
+}

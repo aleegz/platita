@@ -43,6 +43,99 @@ const migrations: readonly Migration[] = [
       await executeStatementsAsync(database, [createUserProfileTableStatement]);
     },
   },
+  {
+    version: 4,
+    name: 'credit-accounts',
+    up: async (database) => {
+      await database.execAsync(`
+        CREATE TABLE IF NOT EXISTS accounts_next (
+          id TEXT PRIMARY KEY NOT NULL,
+          name TEXT NOT NULL,
+          type TEXT NOT NULL CHECK (type IN ('cash', 'bank', 'wallet', 'investment', 'credit')),
+          initial_balance INTEGER NOT NULL DEFAULT 0,
+          active INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0, 1)),
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL
+        );
+      `);
+
+      await database.execAsync(`
+        INSERT INTO accounts_next (
+          id,
+          name,
+          type,
+          initial_balance,
+          active,
+          created_at,
+          updated_at
+        )
+        SELECT
+          id,
+          name,
+          type,
+          initial_balance,
+          active,
+          created_at,
+          updated_at
+        FROM accounts;
+      `);
+
+      await database.execAsync(`
+        CREATE TABLE IF NOT EXISTS transactions_next (
+          id TEXT PRIMARY KEY NOT NULL,
+          type TEXT NOT NULL CHECK (type IN ('income', 'expense', 'transfer', 'yield')),
+          amount INTEGER NOT NULL CHECK (amount > 0),
+          date TEXT NOT NULL,
+          account_id TEXT,
+          from_account_id TEXT,
+          to_account_id TEXT,
+          category_id TEXT,
+          note TEXT,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL,
+          FOREIGN KEY (account_id) REFERENCES accounts_next(id) ON DELETE SET NULL,
+          FOREIGN KEY (from_account_id) REFERENCES accounts_next(id) ON DELETE SET NULL,
+          FOREIGN KEY (to_account_id) REFERENCES accounts_next(id) ON DELETE SET NULL,
+          FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL
+        );
+      `);
+
+      await database.execAsync(`
+        INSERT INTO transactions_next (
+          id,
+          type,
+          amount,
+          date,
+          account_id,
+          from_account_id,
+          to_account_id,
+          category_id,
+          note,
+          created_at,
+          updated_at
+        )
+        SELECT
+          id,
+          type,
+          amount,
+          date,
+          account_id,
+          from_account_id,
+          to_account_id,
+          category_id,
+          note,
+          created_at,
+          updated_at
+        FROM transactions;
+      `);
+
+      await database.execAsync('DROP TABLE transactions');
+      await database.execAsync('DROP TABLE accounts');
+      await database.execAsync('ALTER TABLE accounts_next RENAME TO accounts');
+      await database.execAsync('ALTER TABLE transactions_next RENAME TO transactions');
+      await executeStatementsAsync(database, createIndexStatements);
+    },
+  },
 ];
 
 export const DATABASE_VERSION = migrations[migrations.length - 1]?.version ?? 0;

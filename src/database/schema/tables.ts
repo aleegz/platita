@@ -2,7 +2,7 @@ export const createAccountsTableStatement = `
   CREATE TABLE IF NOT EXISTS accounts (
     id TEXT PRIMARY KEY NOT NULL,
     name TEXT NOT NULL,
-    type TEXT NOT NULL CHECK (type IN ('cash', 'bank', 'wallet', 'investment')),
+    type TEXT NOT NULL CHECK (type IN ('cash', 'bank', 'wallet', 'investment', 'credit')),
     initial_balance INTEGER NOT NULL DEFAULT 0,
     active INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0, 1)),
     created_at TEXT NOT NULL,

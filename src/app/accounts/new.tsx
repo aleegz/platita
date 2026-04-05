@@ -25,7 +25,7 @@ export default function NewAccountScreen() {
     <AccountForm
       backLabel="Ajustes"
       defaultValues={defaultAccountFormValues}
-      description="Guarda una cuenta para empezar a registrar saldos y movimientos."
+      description="Guarda una cuenta para empezar a registrar saldos, deudas y movimientos."
       errorMessage={errorMessage}
       isSubmitting={isSubmitting}
       onBackPress={returnToSettings}

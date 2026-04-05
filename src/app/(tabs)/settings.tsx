@@ -20,7 +20,7 @@ import {
   StateCard,
   SurfaceCard,
 } from '../../components';
-import { getAccountTypeLabel, useAccounts } from '../../features/accounts';
+import { getAccountOpeningBalanceLabel, getAccountTypeLabel, useAccounts } from '../../features/accounts';
 import { createCurrencyFormatter } from '../../lib/formatters';
 import {
   ProfileNameModal,
@@ -63,7 +63,7 @@ export default function SettingsScreen() {
     <Screen
       eyebrow="Configuración"
       title="Ajustes"
-      description="Configura los datos base de la app y administra tus cuentas."
+      description="Configura los datos base de la app y administra tus cuentas de dinero y crédito."
       topInset
     >
       <StatusBar style="light" />
@@ -78,7 +78,7 @@ export default function SettingsScreen() {
             <Text style={styles.summaryEyebrow}>Configuración base</Text>
             <Text style={styles.summaryTitle}>{accountSummaryLabel}</Text>
             <Text style={styles.summaryDescription}>
-              Administra dónde guardas tu dinero y accede a las herramientas de carga.
+              Administra dónde guardas tu dinero, tus tarjetas y el acceso a las herramientas de carga.
             </Text>
           </View>
           <ActionButton
@@ -119,7 +119,7 @@ export default function SettingsScreen() {
 
         <View style={styles.sectionBlock}>
           <SectionIntro
-            description="Edita nombre, tipo, saldo inicial y estado de cada cuenta activa."
+            description="Edita nombre, tipo, saldo o deuda inicial y estado de cada cuenta activa."
             iconName="wallet-outline"
             title="Cuentas"
           />
@@ -180,7 +180,7 @@ export default function SettingsScreen() {
                     />
                   </View>
                   <Text style={styles.accountBalance}>
-                    Saldo inicial:{' '}
+                    {getAccountOpeningBalanceLabel(account.type)}:{' '}
                     {currencyFormatter.format(account.initialBalance / 100)}
                   </Text>
                 </Pressable>
@@ -517,6 +517,8 @@ function getAccountIconName(type: Parameters<typeof getAccountTypeLabel>[0]): Ic
       return 'wallet-outline';
     case 'investment':
       return 'trending-up-outline';
+    case 'credit':
+      return 'card-outline';
     default:
       return 'business-outline';
   }

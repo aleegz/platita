@@ -17,7 +17,7 @@ import {
   SectionIntro,
   StateCard,
 } from '../../components';
-import { getAccountTypeLabel } from '../../features/accounts';
+import { getAccountTypeLabel, isCreditAccountType } from '../../features/accounts';
 import {
   formatDashboardMoney,
   formatDashboardPercentage,
@@ -643,7 +643,7 @@ type AccountAllocationChartProps = {
 
 function AccountAllocationChart({ accounts }: AccountAllocationChartProps) {
   const positiveAccounts = [...accounts]
-    .filter((account) => account.currentBalance > 0)
+    .filter((account) => account.currentBalance > 0 && !isCreditAccountType(account.type))
     .sort((left, right) => right.currentBalance - left.currentBalance);
   const pieSlices = buildAccountDistributionSlices(positiveAccounts);
   const maxBalance = Math.max(
@@ -707,13 +707,16 @@ function AccountAllocationChart({ accounts }: AccountAllocationChartProps) {
         </View>
         <Text style={styles.accountChartHint}>
           {positiveAccounts.length > 0
-            ? 'La torta muestra como se reparte el dinero disponible entre tus cuentas con saldo positivo.'
+            ? 'El gráfico muestra cómo se reparte el dinero disponible entre tus cuentas con saldo positivo.'
             : 'Todavía no hay saldo positivo para dibujar la distribución circular.'}
         </Text>
       </View>
 
       {accounts.map((account) => {
-        const share = account.currentBalance > 0 ? account.currentBalance / totalBalance : 0;
+        const share =
+          account.currentBalance > 0 && !isCreditAccountType(account.type)
+            ? account.currentBalance / totalBalance
+            : 0;
         const trackRatio =
           account.currentBalance > 0
             ? share
@@ -814,6 +817,18 @@ function getAccountDistributionMeta(
 ) {
   const accountTypeLabel = getAccountTypeLabel(account.type);
 
+  if (isCreditAccountType(account.type)) {
+    if (account.currentBalance < 0) {
+      return `${accountTypeLabel} - deuda pendiente`;
+    }
+
+    if (account.currentBalance > 0) {
+      return `${accountTypeLabel} - saldo a favor`;
+    }
+
+    return `${accountTypeLabel} - sin deuda`;
+  }
+
   if (account.currentBalance > 0) {
     return `${accountTypeLabel} - ${Math.round(share * 100)}% del total`;
   }
@@ -824,7 +839,6 @@ function getAccountDistributionMeta(
 
   return `${accountTypeLabel} - sin saldo disponible`;
 }
-
 type TrendChartProps = {
   points: DashboardTrendPoint[];
 };
@@ -1013,6 +1027,8 @@ function getAccountIconName(type: DashboardAccountSnapshot['type']): IconName {
       return 'wallet-outline';
     case 'investment':
       return 'trending-up-outline';
+    case 'credit':
+      return 'card-outline';
     default:
       return 'business-outline';
   }

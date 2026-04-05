@@ -103,7 +103,7 @@ export default function AccountDetailScreen() {
       backLabel="Ajustes"
       key={account.id}
       defaultValues={toAccountFormValues(account)}
-      description="Actualiza nombre, tipo, saldo inicial y estado de la cuenta."
+      description="Actualiza nombre, tipo, saldo o deuda inicial y estado de la cuenta."
       errorMessage={submitErrorMessage}
       isSubmitting={isSubmitting}
       onBackPress={returnToSettings}

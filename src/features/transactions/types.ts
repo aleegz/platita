@@ -66,12 +66,12 @@ export const transactionTypeOptions: readonly TransactionTypeOption[] = [
   {
     value: 'expense',
     label: 'Gasto',
-    description: 'Pagos y consumos que reducen el saldo de una cuenta.',
+    description: 'Pagos y consumos. En cuentas crédito registran deuda pendiente.',
   },
   {
     value: 'transfer',
     label: 'Transferencia',
-    description: 'Movimiento entre dos cuentas propias sin afectar ingresos o gastos.',
+    description: 'Movimiento entre cuentas propias. Sirve también para pagar la tarjeta de crédito.',
   },
   {
     value: 'yield',
