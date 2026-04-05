@@ -32,6 +32,7 @@ import { transactionFormSchema } from '../schema';
 import {
   createDefaultTransactionFormValues,
   formatMoneyInPesos,
+  getTransactionTypeLabel,
   getTransactionTypeDescription,
   transactionTypeOptions,
   type TransactionFormValues,
@@ -45,6 +46,7 @@ type TransactionFormProps = {
   submitLabel: string;
   accounts: Account[];
   categories: Category[];
+  requireConfirmation?: boolean;
   isLoadingReferences?: boolean;
   referenceErrorMessage?: string | null;
   errorMessage?: string | null;
@@ -61,6 +63,7 @@ export function TransactionForm({
   submitLabel,
   accounts,
   categories,
+  requireConfirmation = false,
   isLoadingReferences = false,
   referenceErrorMessage,
   errorMessage,
@@ -81,6 +84,8 @@ export function TransactionForm({
     defaultValues,
   });
   const bottomTabBarHeight = useBottomTabBarHeight();
+  const [pendingConfirmation, setPendingConfirmation] =
+    useState<TransactionFormValues | null>(null);
   const selectedType = watch('type');
   const previousTypeRef = useRef(selectedType);
   const filteredCategories = categories.filter(
@@ -95,6 +100,36 @@ export function TransactionForm({
     !selectedCategoriesAvailable;
   const contentBottomInset =
     presentation === 'screen' ? bottomTabBarHeight + 48 : 28;
+
+  function closeConfirmationModal() {
+    if (isSubmitting) {
+      return;
+    }
+
+    setPendingConfirmation(null);
+  }
+
+  async function confirmPendingTransaction() {
+    if (!pendingConfirmation) {
+      return;
+    }
+
+    try {
+      await onSubmit(pendingConfirmation);
+      setPendingConfirmation(null);
+    } catch {
+      setPendingConfirmation(null);
+    }
+  }
+
+  async function submitTransaction(values: TransactionFormValues) {
+    if (requireConfirmation) {
+      setPendingConfirmation(values);
+      return;
+    }
+
+    await onSubmit(values);
+  }
 
   useEffect(() => {
     if (previousTypeRef.current === selectedType) {
@@ -353,24 +388,130 @@ export function TransactionForm({
             iconName="checkmark-circle-outline"
             label={submitLabel}
             loading={isSubmitting}
-            onPress={handleSubmit(async (values) => {
-              await onSubmit(values);
-            })}
+            onPress={handleSubmit(submitTransaction)}
           />
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
 
+  const confirmationModal = requireConfirmation ? (
+    <TransactionConfirmationModal
+      accounts={accounts}
+      categories={categories}
+      isSubmitting={isSubmitting}
+      onCancel={closeConfirmationModal}
+      onConfirm={confirmPendingTransaction}
+      value={pendingConfirmation}
+    />
+  ) : null;
+
   if (presentation === 'sheet') {
-    return formContent;
+    return (
+      <>
+        {formContent}
+        {confirmationModal}
+      </>
+    );
   }
 
   return (
-    <Screen title={title} description={description} topInset>
-      <StatusBar style="light" />
-      {formContent}
-    </Screen>
+    <>
+      <Screen title={title} description={description} topInset>
+        <StatusBar style="light" />
+        {formContent}
+      </Screen>
+      {confirmationModal}
+    </>
+  );
+}
+
+type TransactionConfirmationModalProps = {
+  value: TransactionFormValues | null;
+  accounts: Account[];
+  categories: Category[];
+  isSubmitting: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+};
+
+function TransactionConfirmationModal({
+  value,
+  accounts,
+  categories,
+  isSubmitting,
+  onCancel,
+  onConfirm,
+}: TransactionConfirmationModalProps) {
+  if (!value) {
+    return null;
+  }
+
+  const summaryItems = getTransactionConfirmationItems(value, accounts, categories);
+
+  return (
+    <Modal
+      animationType="fade"
+      onRequestClose={isSubmitting ? () => undefined : onCancel}
+      transparent
+      visible
+    >
+      <View style={[styles.overlay, styles.overlayCenter, styles.confirmationOverlay]}>
+        {!isSubmitting ? (
+          <Pressable onPress={onCancel} style={styles.overlayBackdrop} />
+        ) : null}
+        <View style={styles.confirmationCard}>
+          <View style={styles.confirmationHeader}>
+            <View style={styles.confirmationIcon}>
+              <Ionicons
+                color={colors.text}
+                name={getTransactionTypeIconName(value.type)}
+                size={24}
+              />
+            </View>
+            <View style={styles.confirmationCopy}>
+              <Text style={styles.confirmationTitle}>Confirmar movimiento</Text>
+              <Text style={styles.confirmationDescription}>
+                Revisa el resumen antes de guardar este movimiento.
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.confirmationSummary}>
+            {summaryItems.map((item) => (
+              <View key={item.label} style={styles.confirmationRow}>
+                <Text style={styles.confirmationLabel}>{item.label}</Text>
+                <Text
+                  style={[
+                    styles.confirmationValue,
+                    item.emphasis ? styles.confirmationValueEmphasis : null,
+                  ]}
+                >
+                  {item.value}
+                </Text>
+              </View>
+            ))}
+          </View>
+
+          <View style={styles.confirmationActions}>
+            <ActionButton
+              disabled={isSubmitting}
+              label="Cancelar"
+              onPress={onCancel}
+              style={styles.confirmationAction}
+              variant="secondary"
+            />
+            <ActionButton
+              iconName="checkmark-circle-outline"
+              label="Confirmar"
+              loading={isSubmitting}
+              onPress={onConfirm}
+              style={styles.confirmationAction}
+            />
+          </View>
+        </View>
+      </View>
+    </Modal>
   );
 }
 
@@ -712,6 +853,12 @@ function CategorySelectionField({
   );
 }
 
+type TransactionConfirmationItem = {
+  label: string;
+  value: string;
+  emphasis?: boolean;
+};
+
 function getTransactionTypeIconName(type: TransactionType): IconName {
   switch (type) {
     case 'income':
@@ -723,6 +870,71 @@ function getTransactionTypeIconName(type: TransactionType): IconName {
     case 'yield':
       return 'sparkles-outline';
   }
+}
+
+function getTransactionConfirmationItems(
+  values: TransactionFormValues,
+  accounts: Account[],
+  categories: Category[]
+): TransactionConfirmationItem[] {
+  const items: TransactionConfirmationItem[] = [
+    {
+      label: 'Tipo',
+      value: getTransactionTypeLabel(values.type),
+    },
+    {
+      label: 'Monto',
+      value: formatMoneyInPesos(values.amount),
+      emphasis: true,
+    },
+    {
+      label: 'Fecha',
+      value: formatDateLongLabel(values.date),
+    },
+  ];
+
+  if (values.type === 'transfer') {
+    items.push(
+      {
+        label: 'Cuenta de origen',
+        value: getAccountNameById(accounts, values.fromAccountId),
+      },
+      {
+        label: 'Cuenta de destino',
+        value: getAccountNameById(accounts, values.toAccountId),
+      }
+    );
+  } else {
+    items.push(
+      {
+        label: 'Cuenta',
+        value: getAccountNameById(accounts, values.accountId),
+      },
+      {
+        label: 'Categoría',
+        value: getCategoryNameById(categories, values.categoryId),
+      }
+    );
+  }
+
+  const normalizedNote = values.note.trim();
+
+  if (normalizedNote.length > 0) {
+    items.push({
+      label: 'Nota',
+      value: normalizedNote,
+    });
+  }
+
+  return items;
+}
+
+function getAccountNameById(accounts: Account[], accountId: string) {
+  return accounts.find((account) => account.id === accountId)?.name ?? 'Sin seleccionar';
+}
+
+function getCategoryNameById(categories: Category[], categoryId: string) {
+  return categories.find((category) => category.id === categoryId)?.name ?? 'Sin seleccionar';
 }
 
 function parseMoneyInput(value: string) {
@@ -920,8 +1132,89 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     backgroundColor: 'rgba(7, 9, 13, 0.56)',
   },
+  overlayCenter: {
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+  },
   overlayBackdrop: {
     ...StyleSheet.absoluteFillObject,
+  },
+  confirmationOverlay: {
+    backgroundColor: 'rgba(7, 9, 13, 0.68)',
+  },
+  confirmationCard: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 28,
+    backgroundColor: colors.surfaceSoft,
+    paddingHorizontal: 18,
+    paddingTop: 18,
+    paddingBottom: 20,
+    gap: 18,
+  },
+  confirmationHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  confirmationIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surfaceAccent,
+  },
+  confirmationCopy: {
+    flex: 1,
+    gap: 4,
+  },
+  confirmationTitle: {
+    color: colors.text,
+    fontSize: 22,
+    fontWeight: '800',
+    letterSpacing: -0.4,
+  },
+  confirmationDescription: {
+    color: colors.muted,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  confirmationSummary: {
+    gap: 10,
+  },
+  confirmationRow: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 18,
+    backgroundColor: colors.surface,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    gap: 6,
+  },
+  confirmationLabel: {
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+  },
+  confirmationValue: {
+    color: colors.text,
+    fontSize: 15,
+    fontWeight: '600',
+    lineHeight: 20,
+  },
+  confirmationValueEmphasis: {
+    fontSize: 18,
+    fontWeight: '800',
+    letterSpacing: -0.3,
+  },
+  confirmationActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  confirmationAction: {
+    flex: 1,
   },
   dateModalCard: {
     borderTopLeftRadius: 30,

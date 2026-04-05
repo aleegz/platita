@@ -59,6 +59,7 @@ export default function NewMovementScreen() {
       errorMessage={errorMessage}
       isLoadingReferences={isLoading}
       isSubmitting={isSubmitting}
+      requireConfirmation
       referenceErrorMessage={referenceErrorMessage}
       submitLabel="Guardar movimiento"
       title="Nuevo movimiento"
