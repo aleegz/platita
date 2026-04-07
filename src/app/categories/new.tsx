@@ -1,21 +1,42 @@
-import { Stack } from 'expo-router';
+import { Stack, useRouter, type Href } from 'expo-router';
 
-import { PlaceholderScreen } from '../../components';
+import {
+  CategoryForm,
+  defaultCategoryFormValues,
+  useCategoryMutations,
+} from '../../features/categories';
 
-const items = [
-  'Nombre de categoría',
-  'Tipo: ingreso, gasto o rendimiento',
-  'Estado activo para filtros y presupuestos',
-] as const;
+const categoriesRoute = '/categories' as Href;
 
 export default function NewCategoryScreen() {
+  const router = useRouter();
+  const { createCategory, errorMessage, isSubmitting } = useCategoryMutations();
+
+  function returnToCategories() {
+    if (router.canGoBack()) {
+      router.back();
+      return;
+    }
+
+    router.replace(categoriesRoute);
+  }
+
   return (
     <>
-      <Stack.Screen options={{ title: 'Nueva categoría', headerTitle: '' }} />
-      <PlaceholderScreen
+      <Stack.Screen options={{ headerShown: false }} />
+      <CategoryForm
+        backLabel="Categorías"
+        defaultValues={defaultCategoryFormValues}
+        description="Crea una categoría para organizar mejor tus ingresos, gastos o rendimientos."
+        errorMessage={errorMessage}
+        isSubmitting={isSubmitting}
+        onBackPress={returnToCategories}
+        submitLabel="Guardar categoría"
         title="Nueva categoría"
-        description="Ruta preparada para alta de categorías sin implementar todavía el CRUD completo."
-        items={items}
+        onSubmit={async (values) => {
+          await createCategory(values);
+          returnToCategories();
+        }}
       />
     </>
   );

@@ -147,7 +147,7 @@ export function createTransactionService(
     async loadReferenceData() {
       const [accounts, categories] = await Promise.all([
         accountRepository.listActive(),
-        categoryRepository.listActive(),
+        categoryRepository.listAll(),
       ]);
 
       return {

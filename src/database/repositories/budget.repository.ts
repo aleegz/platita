@@ -1,4 +1,5 @@
 import type {
+  AggregateTotalRow,
   MonthlyBudgetRow,
   RepositoryDatabase,
 } from '../../types/database';
@@ -28,6 +29,7 @@ export type BudgetRepository = {
   getBudgetByCategoryMonthYear(
     input: GetBudgetByCategoryMonthYearDTO
   ): Promise<MonthlyBudget | null>;
+  countByCategoryId(categoryId: string): Promise<number>;
 };
 
 export function createBudgetRepository(
@@ -102,10 +104,23 @@ export function createBudgetRepository(
     return rows.map(mapMonthlyBudgetRow);
   }
 
+  async function countByCategoryId(categoryId: string) {
+    const row = await database.getFirstAsync<AggregateTotalRow>(
+      `
+        SELECT COUNT(*) AS total
+        FROM monthly_budgets
+        WHERE category_id = ?
+      `,
+      [categoryId]
+    );
+
+    return row?.total ?? 0;
+  }
+
   return {
     upsertMonthlyBudget,
     getBudgetsByMonthYear,
     getBudgetByCategoryMonthYear,
+    countByCategoryId,
   };
 }
-

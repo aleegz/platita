@@ -43,6 +43,8 @@ const currencyFormatter = createCurrencyFormatter({
 
 const newAccountRoute = '/accounts/new' as Href;
 const economicDataRoute = '/economic-data' as Href;
+const backupRoute = '/backup' as Href;
+const categoriesRoute = '/categories' as Href;
 const settingsAccountRoute = (id: string) =>
   ({
     pathname: '/accounts/[id]',
@@ -270,47 +272,6 @@ export default function SettingsScreen() {
           ) : null}
         </View>
 
-        <SurfaceCard style={styles.securityCard}>
-          <SectionIntro
-            description="Protege tus saldos y movimientos cuando vuelves a abrir la app."
-            iconName="shield-checkmark-outline"
-            title="Seguridad"
-          />
-          <View style={styles.securityRow}>
-            <View style={styles.securityCopy}>
-              <Text style={styles.securityLabel}>Bloqueo de la app</Text>
-              <Text style={styles.securityDescription}>{appLockDescription}</Text>
-            </View>
-            <Switch
-              disabled={isAppLockSwitchDisabled}
-              onValueChange={(nextValue) => {
-                void handleAppLockChange(nextValue);
-              }}
-              thumbColor={isAppLockEnabled ? colors.text : colors.surface}
-              trackColor={{
-                false: colors.surfaceMuted,
-                true: colors.surfaceAccent,
-              }}
-              value={isAppLockEnabled}
-            />
-          </View>
-          {isAppLockEnabled && !appLockErrorMessage ? (
-            <Text style={styles.securityMeta}>
-              La app pedirá desbloqueo al abrirse o al volver al frente.
-            </Text>
-          ) : null}
-          {appLockErrorMessage ? (
-            <Text style={[styles.securityMeta, styles.securityMetaError]}>
-              {appLockErrorMessage}
-            </Text>
-          ) : null}
-          {!appLockErrorMessage && deviceAuthenticationErrorMessage ? (
-            <Text style={[styles.securityMeta, styles.securityMetaError]}>
-              {deviceAuthenticationErrorMessage}
-            </Text>
-          ) : null}
-        </SurfaceCard>
-
         <View style={styles.sectionBlock}>
           <SectionIntro
             description="Accesos rápidos para alimentar la app y administrar tus datos base."
@@ -367,7 +328,10 @@ export default function SettingsScreen() {
               </View>
             </View>
 
-            <View style={styles.linkCard}>
+            <Pressable
+              onPress={() => router.push(categoriesRoute)}
+              style={styles.linkCard}
+            >
               <View style={styles.linkHeader}>
                 <View style={styles.linkIcon}>
                   <Ionicons
@@ -379,16 +343,16 @@ export default function SettingsScreen() {
                 <View style={styles.linkCopy}>
                   <Text style={styles.linkTitle}>Categorías</Text>
                   <Text style={styles.linkDescription}>
-                    Se incorporará en versiones posteriores del MVP.
+                    Gestiona categorías de ingresos, gastos y rendimientos.
                   </Text>
                 </View>
                 <Ionicons
                   color={colors.muted}
-                  name="hourglass-outline"
+                  name="chevron-forward"
                   size={18}
                 />
               </View>
-            </View>
+            </Pressable>
           </View>
         </View>
 

@@ -14,6 +14,7 @@ const categorySelectStatement = `
 export type CategoryRepository = {
   create(input: CreateCategoryDTO): Promise<Category>;
   update(id: string, input: UpdateCategoryDTO): Promise<Category | null>;
+  listAll(): Promise<Category[]>;
   listByType(type: CategoryType): Promise<Category[]>;
   listActive(): Promise<Category[]>;
   getById(id: string): Promise<Category | null>;
@@ -97,9 +98,17 @@ export function createCategoryRepository(
     return getById(id);
   }
 
+  async function listAll() {
+    const rows = await database.getAllAsync<CategoryRow>(
+      `${categorySelectStatement} ORDER BY type ASC, active DESC, name ASC`
+    );
+
+    return rows.map(mapCategoryRow);
+  }
+
   async function listByType(type: CategoryType) {
     const rows = await database.getAllAsync<CategoryRow>(
-      `${categorySelectStatement} WHERE type = ? ORDER BY name ASC`,
+      `${categorySelectStatement} WHERE type = ? ORDER BY active DESC, name ASC`,
       [type]
     );
 
@@ -117,6 +126,7 @@ export function createCategoryRepository(
   return {
     create,
     update,
+    listAll,
     listByType,
     listActive,
     getById,

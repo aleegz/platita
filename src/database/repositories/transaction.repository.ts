@@ -50,6 +50,7 @@ export type TransactionRepository = {
   sumTransferInOutByAccount(
     input: SumTransferInOutByAccountDTO
   ): Promise<AccountTransferSummary>;
+  countByCategoryId(categoryId: string): Promise<number>;
 };
 
 export function createTransactionRepository(
@@ -266,6 +267,19 @@ export function createTransactionRepository(
     );
   }
 
+  async function countByCategoryId(categoryId: string) {
+    const row = await database.getFirstAsync<AggregateTotalRow>(
+      `
+        SELECT COUNT(*) AS total
+        FROM transactions
+        WHERE category_id = ?
+      `,
+      [categoryId]
+    );
+
+    return row?.total ?? 0;
+  }
+
   return {
     create,
     delete: remove,
@@ -276,6 +290,7 @@ export function createTransactionRepository(
     sumByTypeAndMonth,
     update,
     sumTransferInOutByAccount,
+    countByCategoryId,
   };
 }
 

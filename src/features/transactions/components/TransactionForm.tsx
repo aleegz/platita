@@ -90,9 +90,13 @@ export function TransactionForm({
   const [pendingConfirmation, setPendingConfirmation] =
     useState<TransactionFormValues | null>(null);
   const selectedType = watch('type');
+  const selectedCategoryId = watch('categoryId');
   const previousTypeRef = useRef(selectedType);
   const filteredCategories = categories.filter(
-    (category) => selectedType !== 'transfer' && category.type === selectedType
+    (category) =>
+      selectedType !== 'transfer' &&
+      category.type === selectedType &&
+      (category.active || category.id === selectedCategoryId)
   );
   const selectedCategoriesAvailable =
     selectedType === 'transfer' ? true : filteredCategories.length > 0;
@@ -179,7 +183,7 @@ export function TransactionForm({
           ) : null}
 
           <FormSectionCard
-            description="Elige cómo impactará este movimiento en tus cuentas."
+            description="Elige cÃƒÂ³mo impactarÃƒÂ¡ este movimiento en tus cuentas."
             enabled={groupFieldsInCards}
             iconName="swap-horizontal-outline"
             title="Tipo de movimiento"
@@ -267,7 +271,7 @@ export function TransactionForm({
               )}
             />
             <Text style={styles.helperText}>
-              Escribe solo números. Los últimos dos dígitos son los centavos.
+              Escribe solo nÃƒÂºmeros. Los ÃƒÂºltimos dos dÃƒÂ­gitos son los centavos.
             </Text>
             {errors.amount?.message ? (
               <Text style={styles.errorText}>{errors.amount.message}</Text>
@@ -278,12 +282,12 @@ export function TransactionForm({
           <FormSectionCard
             description={
               selectedType === 'transfer'
-                ? 'Define desde qué cuenta sale el dinero y a cuál entra.'
-                : 'Selecciona la cuenta que impacta y la categoría asociada.'
+                ? 'Define desde quÃƒÂ© cuenta sale el dinero y a cuÃƒÂ¡l entra.'
+                : 'Selecciona la cuenta que impacta y la categorÃƒÂ­a asociada.'
             }
             enabled={groupFieldsInCards}
             iconName={selectedType === 'transfer' ? 'swap-horizontal-outline' : 'wallet-outline'}
-            title={selectedType === 'transfer' ? 'Cuentas involucradas' : 'Cuenta y categoría'}
+            title={selectedType === 'transfer' ? 'Cuentas involucradas' : 'Cuenta y categorÃƒÂ­a'}
           >
             {selectedType === 'transfer' ? (
               <>
@@ -377,7 +381,7 @@ export function TransactionForm({
           {isLoadingReferences ? (
             <StateCard
               align="left"
-              description="Cargando cuentas y categorías..."
+              description="Cargando cuentas y categorÃƒÂ­as..."
               loading
               title="Preparando referencias"
             />
@@ -398,9 +402,9 @@ export function TransactionForm({
           filteredCategories.length === 0 ? (
             <StateCard
               align="left"
-              description="No hay categorías activas disponibles para este tipo de movimiento."
+              description="No hay categorÃƒÂ­as activas disponibles para este tipo de movimiento."
               iconName="pricetags-outline"
-              title="Faltan categorías disponibles"
+              title="Faltan categorÃƒÂ­as disponibles"
               tone="warning"
             />
           ) : null}
@@ -616,7 +620,7 @@ function DateField({ value, errorMessage, onBlur, onChange }: DateFieldProps) {
         <Ionicons color={colors.muted} name="chevron-forward" size={18} />
       </Pressable>
       <Text style={styles.helperText}>
-        Se completa con el día actual y puedes ajustarla desde el modal.
+        Se completa con el dÃƒÂ­a actual y puedes ajustarla desde el modal.
       </Text>
       {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
 
@@ -741,7 +745,7 @@ function DatePickerModal({
               renderLabel={(option) => monthOptions[option - 1] ?? String(option)}
             />
             <PickerColumn
-              label="Año"
+              label="AÃƒÂ±o"
               options={yearOptions}
               selectedValue={draftYear}
               onSelect={setDraftYear}
@@ -892,7 +896,7 @@ function CategorySelectionField({
 }: CategorySelectionFieldProps) {
   return (
     <View style={styles.fieldGroup}>
-      <FormFieldLabel iconName="pricetags-outline" label="Categoría" />
+      <FormFieldLabel iconName="pricetags-outline" label="CategorÃƒÂ­a" />
       <Controller
         control={control}
         name="categoryId"
@@ -987,7 +991,7 @@ function getTransactionConfirmationItems(
         value: getAccountNameById(accounts, values.accountId),
       },
       {
-        label: 'Categoría',
+        label: 'CategorÃƒÂ­a',
         value: getCategoryNameById(categories, values.categoryId),
       }
     );

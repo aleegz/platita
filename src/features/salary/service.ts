@@ -94,9 +94,11 @@ async function findSalaryCategory(
   const incomeCategories = await repository.listByType('income');
 
   return (
+    incomeCategories.find((category) => category.id === 'income-salary' && category.active) ??
     incomeCategories.find(
       (category) => category.active && normalizeCategoryName(category.name) === 'sueldo'
-    ) ?? null
+    ) ??
+    null
   );
 }
 
