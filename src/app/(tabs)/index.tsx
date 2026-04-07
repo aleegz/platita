@@ -19,6 +19,10 @@ import {
 } from '../../components';
 import { getAccountTypeLabel, isCreditAccountType } from '../../features/accounts';
 import {
+  LiveEconomicIndicatorsSection,
+  useLiveEconomicIndicators,
+} from '../../features/economicData';
+import {
   formatDashboardMoney,
   formatDashboardPercentage,
   type DashboardAccountSnapshot,
@@ -59,6 +63,11 @@ const accountPieCenterInset = (accountPieSize - accountPieCenterSize) / 2;
 
 export default function HomeScreen() {
   const { data, errorMessage, isLoading } = useDashboard();
+  const {
+    data: liveEconomicIndicators,
+    errorMessage: liveEconomicIndicatorsErrorMessage,
+    isLoading: isLiveEconomicIndicatorsLoading,
+  } = useLiveEconomicIndicators();
   const { profile } = useUserProfile();
   const displayName = profile?.displayName ?? 'Usuario';
 
@@ -81,6 +90,12 @@ export default function HomeScreen() {
           savingsRate={data.lifetimeSummary.savingsRate}
           tone={data.insight.tone}
           totalMoneyAvailable={data.totalMoneyAvailable}
+        />
+
+        <LiveEconomicIndicatorsSection
+          data={liveEconomicIndicators}
+          errorMessage={liveEconomicIndicatorsErrorMessage}
+          isLoading={isLiveEconomicIndicatorsLoading}
         />
 
         {isLoading ? (
