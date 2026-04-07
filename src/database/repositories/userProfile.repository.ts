@@ -7,7 +7,7 @@ import { mapUserProfileRow } from '../../types/database';
 import type { UserProfile } from '../../types/domain';
 
 const userProfileSelectStatement = `
-  SELECT id, display_name, created_at, updated_at
+  SELECT id, display_name, app_lock_enabled, created_at, updated_at
   FROM user_profile
 `;
 
@@ -33,16 +33,19 @@ export function createUserProfileRepository(
         INSERT INTO user_profile (
           id,
           display_name,
+          app_lock_enabled,
           created_at,
           updated_at
-        ) VALUES (?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?)
         ON CONFLICT(id) DO UPDATE SET
           display_name = excluded.display_name,
+          app_lock_enabled = excluded.app_lock_enabled,
           updated_at = excluded.updated_at
       `,
       [
         input.id,
         input.displayName,
+        input.appLockEnabled ? 1 : 0,
         input.createdAt,
         input.updatedAt,
       ]

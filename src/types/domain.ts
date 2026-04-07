@@ -73,6 +73,7 @@ export type AccountTransferSummary = {
 export type UserProfile = {
   id: EntityId;
   displayName: string;
+  appLockEnabled: boolean;
   createdAt: IsoDateString;
   updatedAt: IsoDateString;
 };

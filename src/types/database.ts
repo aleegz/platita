@@ -77,6 +77,7 @@ export type EconomicDataRow = {
 export type UserProfileRow = {
   id: string;
   display_name: string;
+  app_lock_enabled: DatabaseBoolean;
   created_at: string;
   updated_at: string;
 };
@@ -166,6 +167,7 @@ export function mapUserProfileRow(row: UserProfileRow): UserProfile {
   return {
     id: row.id,
     displayName: row.display_name,
+    appLockEnabled: row.app_lock_enabled === 1,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };

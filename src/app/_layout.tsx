@@ -8,6 +8,7 @@ import {
   useUserProfileBootstrap,
   useUserProfileMutations,
 } from '../features/settings';
+import { AppLockScreen, useAppLock } from '../features/security';
 import { enableLayoutAnimations } from '../lib/motion';
 import { colors } from '../theme';
 
@@ -37,6 +38,12 @@ function RootNavigation() {
     isSubmitting,
     saveProfile,
   } = useUserProfileMutations();
+  const {
+    errorMessage: appLockErrorMessage,
+    isAuthenticating: isAuthenticatingAppLock,
+    isLocked,
+    unlock,
+  } = useAppLock(profile?.appLockEnabled ?? false, !isLoading && profile !== null);
 
   useEffect(() => {
     if (!isLoading) {
@@ -112,6 +119,14 @@ function RootNavigation() {
         }}
         visible={profile === null}
       />
+
+      {profile?.appLockEnabled && isLocked ? (
+        <AppLockScreen
+          errorMessage={appLockErrorMessage}
+          isAuthenticating={isAuthenticatingAppLock}
+          onUnlock={unlock}
+        />
+      ) : null}
     </>
   );
 }

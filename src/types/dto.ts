@@ -130,6 +130,7 @@ export type GetEconomicDataByMonthYearDTO = MonthYearDTO;
 export type UpsertUserProfileDTO = {
   id: EntityId;
   displayName: string;
+  appLockEnabled: boolean;
   createdAt: IsoDateString;
   updatedAt: IsoDateString;
 };

@@ -136,6 +136,16 @@ const migrations: readonly Migration[] = [
       await executeStatementsAsync(database, createIndexStatements);
     },
   },
+  {
+    version: 5,
+    name: 'app-lock-preference',
+    up: async (database) => {
+      await database.execAsync(`
+        ALTER TABLE user_profile
+        ADD COLUMN app_lock_enabled INTEGER NOT NULL DEFAULT 0;
+      `);
+    },
+  },
 ];
 
 export const DATABASE_VERSION = migrations[migrations.length - 1]?.version ?? 0;

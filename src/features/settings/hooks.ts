@@ -21,7 +21,12 @@ type UserProfileBootstrapState = {
 type UserProfileMutations = {
   isSubmitting: boolean;
   errorMessage: string | null;
+  isSavingProfile: boolean;
+  saveProfileErrorMessage: string | null;
   saveProfile: (input: SaveUserProfileInput) => Promise<UserProfile>;
+  isUpdatingAppLock: boolean;
+  appLockErrorMessage: string | null;
+  setAppLockEnabled: (enabled: boolean) => Promise<UserProfile>;
 };
 
 export function useUserProfileBootstrap(): UserProfileBootstrapState {
@@ -81,12 +86,14 @@ export function useUserProfileMutations(): UserProfileMutations {
   const database = useDatabase();
   const setProfile = useProfileStore((state) => state.setProfile);
   const markHydrated = useProfileStore((state) => state.markHydrated);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [saveProfileErrorMessage, setSaveProfileErrorMessage] = useState<string | null>(null);
+  const [isUpdatingAppLock, setIsUpdatingAppLock] = useState(false);
+  const [appLockErrorMessage, setAppLockErrorMessage] = useState<string | null>(null);
 
   async function saveProfile(input: SaveUserProfileInput) {
-    setIsSubmitting(true);
-    setErrorMessage(null);
+    setIsSavingProfile(true);
+    setSaveProfileErrorMessage(null);
 
     try {
       const profile = await createUserProfileService(database).saveProfile(input);
@@ -97,18 +104,50 @@ export function useUserProfileMutations(): UserProfileMutations {
       return profile;
     } catch (error) {
       console.error(error);
-      setErrorMessage(
+      setSaveProfileErrorMessage(
         getUserFacingMessage(error, 'No se pudo guardar tu nombre.')
       );
       throw error;
     } finally {
-      setIsSubmitting(false);
+      setIsSavingProfile(false);
+    }
+  }
+
+  async function setAppLockEnabled(enabled: boolean) {
+    setIsUpdatingAppLock(true);
+    setAppLockErrorMessage(null);
+
+    try {
+      const profile = await createUserProfileService(database).setAppLockEnabled(
+        enabled
+      );
+
+      setProfile(profile);
+      markHydrated();
+
+      return profile;
+    } catch (error) {
+      console.error(error);
+      setAppLockErrorMessage(
+        getUserFacingMessage(
+          error,
+          'No se pudo actualizar el bloqueo de la app.'
+        )
+      );
+      throw error;
+    } finally {
+      setIsUpdatingAppLock(false);
     }
   }
 
   return {
-    isSubmitting,
-    errorMessage,
+    isSubmitting: isSavingProfile || isUpdatingAppLock,
+    errorMessage: saveProfileErrorMessage,
+    isSavingProfile,
+    saveProfileErrorMessage,
     saveProfile,
+    isUpdatingAppLock,
+    appLockErrorMessage,
+    setAppLockEnabled,
   };
 }

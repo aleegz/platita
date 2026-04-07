@@ -8,6 +8,7 @@ import type { SaveUserProfileInput } from './types';
 export type UserProfileService = {
   getProfile(): Promise<UserProfile | null>;
   saveProfile(input: SaveUserProfileInput): Promise<UserProfile>;
+  setAppLockEnabled(enabled: boolean): Promise<UserProfile>;
 };
 
 const USER_PROFILE_ID = 'main';
@@ -34,8 +35,26 @@ export function createUserProfileService(
       return repository.upsert({
         id: existingProfile?.id ?? USER_PROFILE_ID,
         displayName,
+        appLockEnabled: existingProfile?.appLockEnabled ?? false,
         createdAt: existingProfile?.createdAt ?? timestamp,
         updatedAt: timestamp,
+      });
+    },
+    async setAppLockEnabled(enabled) {
+      const existingProfile = await repository.get();
+
+      if (!existingProfile) {
+        throw createUserFacingError(
+          'Define tu nombre antes de activar el bloqueo de la app.'
+        );
+      }
+
+      return repository.upsert({
+        id: existingProfile.id,
+        displayName: existingProfile.displayName,
+        appLockEnabled: enabled,
+        createdAt: existingProfile.createdAt,
+        updatedAt: createTimestamp(),
       });
     },
   };

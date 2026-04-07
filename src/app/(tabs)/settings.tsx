@@ -8,6 +8,7 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   View,
 } from 'react-native';
@@ -20,7 +21,12 @@ import {
   StateCard,
   SurfaceCard,
 } from '../../components';
-import { getAccountOpeningBalanceLabel, getAccountTypeLabel, useAccounts } from '../../features/accounts';
+import {
+  getAccountOpeningBalanceLabel,
+  getAccountTypeLabel,
+  useAccounts,
+} from '../../features/accounts';
+import { useDeviceAuthenticationAvailability } from '../../features/security';
 import { createCurrencyFormatter } from '../../lib/formatters';
 import {
   ProfileNameModal,
@@ -50,14 +56,48 @@ export default function SettingsScreen() {
   const { accounts, errorMessage, isLoading } = useAccounts();
   const { profile } = useUserProfile();
   const {
+    appLockErrorMessage,
     errorMessage: profileErrorMessage,
-    isSubmitting: isSavingProfile,
+    isSavingProfile,
+    isUpdatingAppLock,
     saveProfile,
+    setAppLockEnabled,
   } = useUserProfileMutations();
+  const {
+    errorMessage: deviceAuthenticationErrorMessage,
+    hasFingerprint,
+    isLoading: isCheckingDeviceAuthentication,
+    isSupported: isDeviceAuthenticationSupported,
+  } = useDeviceAuthenticationAvailability();
   const [isProfileModalVisible, setIsProfileModalVisible] = useState(false);
   const accountSummaryLabel = isLoading
     ? 'Sincronizando cuentas'
     : `${accounts.length} ${accounts.length === 1 ? 'cuenta activa' : 'cuentas activas'}`;
+  const isAppLockEnabled = profile?.appLockEnabled ?? false;
+  const isAppLockSwitchDisabled =
+    isCheckingDeviceAuthentication ||
+    isUpdatingAppLock ||
+    profile === null ||
+    (!isDeviceAuthenticationSupported && !isAppLockEnabled);
+  const appLockDescription = isCheckingDeviceAuthentication
+    ? 'Verificando la seguridad disponible en este dispositivo...'
+    : !isDeviceAuthenticationSupported
+      ? 'Activa un método de desbloqueo en tu dispositivo para proteger la app.'
+      : hasFingerprint
+        ? 'Protege tus saldos y movimientos con huella o con el bloqueo del dispositivo.'
+        : 'Protege tus saldos y movimientos con el bloqueo del dispositivo.';
+
+  async function handleAppLockChange(nextValue: boolean) {
+    if (isAppLockSwitchDisabled) {
+      return;
+    }
+
+    try {
+      await setAppLockEnabled(nextValue);
+    } catch {
+      // El mensaje visible se maneja desde el hook de perfil.
+    }
+  }
 
   return (
     <Screen
@@ -115,6 +155,47 @@ export default function SettingsScreen() {
               variant="secondary"
             />
           </View>
+        </SurfaceCard>
+
+        <SurfaceCard style={styles.securityCard}>
+          <SectionIntro
+            description="Protege tus saldos y movimientos cuando vuelves a abrir la app."
+            iconName="shield-checkmark-outline"
+            title="Seguridad"
+          />
+          <View style={styles.securityRow}>
+            <View style={styles.securityCopy}>
+              <Text style={styles.securityLabel}>Bloqueo de la app</Text>
+              <Text style={styles.securityDescription}>{appLockDescription}</Text>
+            </View>
+            <Switch
+              disabled={isAppLockSwitchDisabled}
+              onValueChange={(nextValue) => {
+                void handleAppLockChange(nextValue);
+              }}
+              thumbColor={isAppLockEnabled ? colors.text : colors.surface}
+              trackColor={{
+                false: colors.surfaceMuted,
+                true: colors.surfaceAccent,
+              }}
+              value={isAppLockEnabled}
+            />
+          </View>
+          {isAppLockEnabled && !appLockErrorMessage ? (
+            <Text style={styles.securityMeta}>
+              La app pedirá desbloqueo al abrirse o al volver al frente.
+            </Text>
+          ) : null}
+          {appLockErrorMessage ? (
+            <Text style={[styles.securityMeta, styles.securityMetaError]}>
+              {appLockErrorMessage}
+            </Text>
+          ) : null}
+          {!appLockErrorMessage && deviceAuthenticationErrorMessage ? (
+            <Text style={[styles.securityMeta, styles.securityMetaError]}>
+              {deviceAuthenticationErrorMessage}
+            </Text>
+          ) : null}
         </SurfaceCard>
 
         <View style={styles.sectionBlock}>
@@ -188,6 +269,47 @@ export default function SettingsScreen() {
             </View>
           ) : null}
         </View>
+
+        <SurfaceCard style={styles.securityCard}>
+          <SectionIntro
+            description="Protege tus saldos y movimientos cuando vuelves a abrir la app."
+            iconName="shield-checkmark-outline"
+            title="Seguridad"
+          />
+          <View style={styles.securityRow}>
+            <View style={styles.securityCopy}>
+              <Text style={styles.securityLabel}>Bloqueo de la app</Text>
+              <Text style={styles.securityDescription}>{appLockDescription}</Text>
+            </View>
+            <Switch
+              disabled={isAppLockSwitchDisabled}
+              onValueChange={(nextValue) => {
+                void handleAppLockChange(nextValue);
+              }}
+              thumbColor={isAppLockEnabled ? colors.text : colors.surface}
+              trackColor={{
+                false: colors.surfaceMuted,
+                true: colors.surfaceAccent,
+              }}
+              value={isAppLockEnabled}
+            />
+          </View>
+          {isAppLockEnabled && !appLockErrorMessage ? (
+            <Text style={styles.securityMeta}>
+              La app pedirá desbloqueo al abrirse o al volver al frente.
+            </Text>
+          ) : null}
+          {appLockErrorMessage ? (
+            <Text style={[styles.securityMeta, styles.securityMetaError]}>
+              {appLockErrorMessage}
+            </Text>
+          ) : null}
+          {!appLockErrorMessage && deviceAuthenticationErrorMessage ? (
+            <Text style={[styles.securityMeta, styles.securityMetaError]}>
+              {deviceAuthenticationErrorMessage}
+            </Text>
+          ) : null}
+        </SurfaceCard>
 
         <View style={styles.sectionBlock}>
           <SectionIntro
@@ -315,6 +437,9 @@ const styles = StyleSheet.create({
   profileCard: {
     gap: 16,
   },
+  securityCard: {
+    gap: 16,
+  },
   summaryCopy: {
     gap: 4,
   },
@@ -371,6 +496,34 @@ const styles = StyleSheet.create({
   },
   profileButton: {
     minWidth: 108,
+  },
+  securityRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 16,
+  },
+  securityCopy: {
+    flex: 1,
+    gap: 6,
+  },
+  securityLabel: {
+    color: colors.text,
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  securityDescription: {
+    color: colors.muted,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  securityMeta: {
+    color: colors.muted,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  securityMetaError: {
+    color: colors.danger,
   },
   accountCard: {
     borderWidth: 1,
