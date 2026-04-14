@@ -4,10 +4,16 @@ import { Ionicons } from '@expo/vector-icons';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { StatusBar } from 'expo-status-bar';
-import { Controller, useForm } from 'react-hook-form';
+import {
+  Controller,
+  useForm,
+  type FieldErrors,
+  type SubmitErrorHandler,
+} from 'react-hook-form';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
+  type LayoutChangeEvent,
   Modal,
   Platform,
   Pressable,
@@ -41,6 +47,7 @@ import {
 } from '../types';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
+type FormSectionAnchor = 'type' | 'amount' | 'accounts' | 'date' | 'note' | 'submit';
 
 type TransactionFormProps = {
   title: string;
@@ -90,9 +97,11 @@ export function TransactionForm({
   const bottomTabBarHeight = useBottomTabBarHeight();
   const [pendingConfirmation, setPendingConfirmation] =
     useState<TransactionFormValues | null>(null);
+  const [showSubmitValidationFeedback, setShowSubmitValidationFeedback] = useState(false);
   const selectedType = watch('type');
   const selectedCategoryId = watch('categoryId');
   const previousTypeRef = useRef(selectedType);
+  const sectionOffsetsRef = useRef<Partial<Record<FormSectionAnchor, number>>>({});
   const filteredCategories = categories.filter(
     (category) =>
       selectedType !== 'transfer' &&
@@ -107,6 +116,10 @@ export function TransactionForm({
     isLoadingReferences ||
     accounts.length === 0 ||
     !selectedCategoriesAvailable;
+  const validationFeedbackMessage =
+    showSubmitValidationFeedback && Object.keys(errors).length > 0
+      ? 'Revisá los campos marcados antes de guardar el movimiento.'
+      : null;
   const contentBottomInset =
     presentation === 'screen' ? bottomTabBarHeight + 48 : 28;
 
@@ -132,6 +145,8 @@ export function TransactionForm({
   }
 
   async function submitTransaction(values: TransactionFormValues) {
+    setShowSubmitValidationFeedback(false);
+
     if (requireConfirmation) {
       setPendingConfirmation(values);
       return;
@@ -139,6 +154,56 @@ export function TransactionForm({
 
     await onSubmit(values);
   }
+
+  function registerSectionOffset(
+    anchor: FormSectionAnchor,
+    event: LayoutChangeEvent
+  ) {
+    sectionOffsetsRef.current[anchor] = event.nativeEvent.layout.y;
+  }
+
+  function scrollToAnchor(anchor: FormSectionAnchor) {
+    const offset = sectionOffsetsRef.current[anchor];
+
+    if (typeof offset !== 'number') {
+      return;
+    }
+
+    scrollViewRef.current?.scrollTo({
+      y: Math.max(offset - 24, 0),
+      animated: true,
+    });
+  }
+
+  function resolveFirstErrorAnchor(
+    formErrors: FieldErrors<TransactionFormValues>
+  ): FormSectionAnchor {
+    const orderedFields: Array<{
+      anchor: FormSectionAnchor;
+      fields: Array<keyof TransactionFormValues>;
+    }> = [
+      { anchor: 'type', fields: ['type'] },
+      { anchor: 'amount', fields: ['amount'] },
+      selectedType === 'transfer'
+        ? { anchor: 'accounts', fields: ['fromAccountId', 'toAccountId'] }
+        : { anchor: 'accounts', fields: ['accountId', 'categoryId'] },
+      { anchor: 'date', fields: ['date'] },
+      { anchor: 'note', fields: ['note'] },
+    ];
+
+    const matchingSection = orderedFields.find(({ fields }) =>
+      fields.some((fieldName) => Boolean(formErrors[fieldName]))
+    );
+
+    return matchingSection?.anchor ?? 'submit';
+  }
+
+  const handleInvalidSubmit: SubmitErrorHandler<TransactionFormValues> = (
+    formErrors
+  ) => {
+    setShowSubmitValidationFeedback(true);
+    scrollToAnchor(resolveFirstErrorAnchor(formErrors));
+  };
 
   useEffect(() => {
     if (previousTypeRef.current === selectedType) {
@@ -157,6 +222,12 @@ export function TransactionForm({
     setValue('fromAccountId', '');
     setValue('toAccountId', '');
   }, [selectedType, setValue]);
+
+  useEffect(() => {
+    if (showSubmitValidationFeedback && Object.keys(errors).length === 0) {
+      setShowSubmitValidationFeedback(false);
+    }
+  }, [errors, showSubmitValidationFeedback]);
 
   const formContent = (
     <KeyboardAvoidingView
@@ -185,203 +256,213 @@ export function TransactionForm({
             />
           ) : null}
 
-          <FormSectionCard
-            description="Elige cómo impactará este movimiento en tus cuentas."
-            enabled={groupFieldsInCards}
-            iconName="swap-horizontal-outline"
-            title="Tipo de movimiento"
-          >
-            <View style={styles.fieldGroup}>
-              <FormFieldLabel iconName="swap-horizontal-outline" label="Tipo" />
-              <Text style={styles.helperText}>
-                {getTransactionTypeDescription(selectedType)}
-              </Text>
-              <Controller
-                control={control}
-                name="type"
-                render={({ field }) => (
-                  <View style={styles.optionGrid}>
-                    {transactionTypeOptions.map((option) => {
-                      const isSelected = field.value === option.value;
+          <View onLayout={(event) => registerSectionOffset('type', event)}>
+            <FormSectionCard
+              description="Elige cómo impactará este movimiento en tus cuentas."
+              enabled={groupFieldsInCards}
+              iconName="swap-horizontal-outline"
+              title="Tipo de movimiento"
+            >
+              <View style={styles.fieldGroup}>
+                <FormFieldLabel iconName="swap-horizontal-outline" label="Tipo" />
+                <Text style={styles.helperText}>
+                  {getTransactionTypeDescription(selectedType)}
+                </Text>
+                <Controller
+                  control={control}
+                  name="type"
+                  render={({ field }) => (
+                    <View style={styles.optionGrid}>
+                      {transactionTypeOptions.map((option) => {
+                        const isSelected = field.value === option.value;
 
-                      return (
-                        <Pressable
-                          key={option.value}
-                          onPress={() => field.onChange(option.value)}
-                          style={[
-                            styles.choiceCard,
-                            isSelected ? styles.choiceCardSelected : null,
-                          ]}
-                        >
-                          <Ionicons
-                            color={isSelected ? colors.primaryText : colors.text}
-                            name={getTransactionTypeIconName(option.value)}
-                            size={18}
-                          />
-                          <Text
+                        return (
+                          <Pressable
+                            key={option.value}
+                            onPress={() => field.onChange(option.value)}
                             style={[
-                              styles.choiceLabel,
-                              isSelected ? styles.choiceLabelSelected : null,
+                              styles.choiceCard,
+                              isSelected ? styles.choiceCardSelected : null,
                             ]}
                           >
-                            {option.label}
-                          </Text>
-                        </Pressable>
-                      );
-                    })}
-                  </View>
-                )}
-              />
-              {errors.type?.message ? (
-                <Text style={styles.errorText}>{errors.type.message}</Text>
-              ) : null}
-            </View>
-          </FormSectionCard>
-
-          <FormSectionCard
-            description="Carga el importe que quieres registrar."
-            enabled={groupFieldsInCards}
-            iconName="cash-outline"
-            title="Monto"
-          >
-            <View style={styles.fieldGroup}>
-            <FormFieldLabel iconName="cash-outline" label="Monto" />
-            <Controller
-              control={control}
-              name="amount"
-              render={({ field }) => (
-                <TextInput
-                  keyboardType="number-pad"
-                  onBlur={field.onBlur}
-                  onChangeText={(value) => field.onChange(parseMoneyInput(value))}
-                  onFocus={createFocusHandler()}
-                  placeholder="0"
-                  placeholderTextColor={colors.muted}
-                  style={[
-                    styles.input,
-                    errors.amount ? styles.inputError : null,
-                  ]}
-                  value={field.value > 0 ? String(field.value) : ''}
+                            <Ionicons
+                              color={isSelected ? colors.primaryText : colors.text}
+                              name={getTransactionTypeIconName(option.value)}
+                              size={18}
+                            />
+                            <Text
+                              style={[
+                                styles.choiceLabel,
+                                isSelected ? styles.choiceLabelSelected : null,
+                              ]}
+                            >
+                              {option.label}
+                            </Text>
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+                  )}
                 />
-              )}
-            />
-            <Controller
-              control={control}
-              name="amount"
-              render={({ field }) => (
-                <Text style={styles.previewText}>
-                  Vista previa: {formatMoneyInPesos(field.value)}
-                </Text>
-              )}
-            />
-            <Text style={styles.helperText}>
-              Escribe solo números. Los últimos dos dígitos son los centavos.
-            </Text>
-            {errors.amount?.message ? (
-              <Text style={styles.errorText}>{errors.amount.message}</Text>
-            ) : null}
-            </View>
-          </FormSectionCard>
+                {errors.type?.message ? (
+                  <Text style={styles.errorText}>{errors.type.message}</Text>
+                ) : null}
+              </View>
+            </FormSectionCard>
+          </View>
 
-          <FormSectionCard
-            description={
-              selectedType === 'transfer'
-                ? 'Define desde qué cuenta sale el dinero y a cuál entra.'
-                : 'Selecciona la cuenta que impacta y la categoría asociada.'
-            }
-            enabled={groupFieldsInCards}
-            iconName={selectedType === 'transfer' ? 'swap-horizontal-outline' : 'wallet-outline'}
-            title={selectedType === 'transfer' ? 'Cuentas involucradas' : 'Cuenta y categoría'}
-          >
-            {selectedType === 'transfer' ? (
-              <>
-              <AccountSelectionField
-                accounts={accounts}
-                control={control}
-                errorMessage={errors.fromAccountId?.message}
-                label="Cuenta de origen"
-                name="fromAccountId"
-              />
-              <AccountSelectionField
-                accounts={accounts}
-                control={control}
-                errorMessage={errors.toAccountId?.message}
-                label="Cuenta de destino"
-                name="toAccountId"
-              />
-            </>
-          ) : (
-            <>
-              <AccountSelectionField
-                accounts={accounts}
-                control={control}
-                errorMessage={errors.accountId?.message}
-                label="Cuenta"
-                name="accountId"
-              />
-              <CategorySelectionField
-                categories={filteredCategories}
-                control={control}
-                errorMessage={errors.categoryId?.message}
-              />
-              </>
-            )}
-          </FormSectionCard>
-
-          <FormSectionCard
-            description="Elige la fecha que corresponde a este movimiento."
-            enabled={groupFieldsInCards}
-            iconName="calendar-outline"
-            title="Fecha"
-          >
-            <View style={styles.fieldGroup}>
-              <FormFieldLabel iconName="calendar-outline" label="Fecha" />
+          <View onLayout={(event) => registerSectionOffset('amount', event)}>
+            <FormSectionCard
+              description="Carga el importe que quieres registrar."
+              enabled={groupFieldsInCards}
+              iconName="cash-outline"
+              title="Monto"
+            >
+              <View style={styles.fieldGroup}>
+              <FormFieldLabel iconName="cash-outline" label="Monto" />
               <Controller
                 control={control}
-                name="date"
-                render={({ field }) => (
-                  <DateField
-                    errorMessage={errors.date?.message}
-                    value={field.value}
-                    onBlur={field.onBlur}
-                    onChange={field.onChange}
-                  />
-                )}
-              />
-            </View>
-          </FormSectionCard>
-
-          <FormSectionCard
-            description="Agrega contexto extra para recordar mejor este movimiento."
-            enabled={groupFieldsInCards}
-            iconName="document-text-outline"
-            title="Notas"
-          >
-            <View style={styles.fieldGroup}>
-              <FormFieldLabel iconName="document-text-outline" label="Nota" />
-              <Controller
-                control={control}
-                name="note"
+                name="amount"
                 render={({ field }) => (
                   <TextInput
-                    multiline
-                    numberOfLines={3}
+                    keyboardType="number-pad"
                     onBlur={field.onBlur}
-                    onChangeText={field.onChange}
-                    onFocus={createFocusHandler(undefined, { extraOffset: 196 })}
-                    placeholder="Opcional"
+                    onChangeText={(value) => field.onChange(parseMoneyInput(value))}
+                    onFocus={createFocusHandler()}
+                    placeholder="0"
                     placeholderTextColor={colors.muted}
-                    style={[styles.input, styles.textArea]}
-                    textAlignVertical="top"
-                    value={field.value}
+                    style={[
+                      styles.input,
+                      errors.amount ? styles.inputError : null,
+                    ]}
+                    value={field.value > 0 ? String(field.value) : ''}
                   />
                 )}
               />
-              {errors.note?.message ? (
-                <Text style={styles.errorText}>{errors.note.message}</Text>
+              <Controller
+                control={control}
+                name="amount"
+                render={({ field }) => (
+                  <Text style={styles.previewText}>
+                    Vista previa: {formatMoneyInPesos(field.value)}
+                  </Text>
+                )}
+              />
+              <Text style={styles.helperText}>
+                Escribe solo números. Los últimos dos dígitos son los centavos.
+              </Text>
+              {errors.amount?.message ? (
+                <Text style={styles.errorText}>{errors.amount.message}</Text>
               ) : null}
-            </View>
-          </FormSectionCard>
+              </View>
+            </FormSectionCard>
+          </View>
+
+          <View onLayout={(event) => registerSectionOffset('accounts', event)}>
+            <FormSectionCard
+              description={
+                selectedType === 'transfer'
+                  ? 'Define desde qué cuenta sale el dinero y a cuál entra.'
+                  : 'Selecciona la cuenta que impacta y la categoría asociada.'
+              }
+              enabled={groupFieldsInCards}
+              iconName={selectedType === 'transfer' ? 'swap-horizontal-outline' : 'wallet-outline'}
+              title={selectedType === 'transfer' ? 'Cuentas involucradas' : 'Cuenta y categoría'}
+            >
+              {selectedType === 'transfer' ? (
+                <>
+                <AccountSelectionField
+                  accounts={accounts}
+                  control={control}
+                  errorMessage={errors.fromAccountId?.message}
+                  label="Cuenta de origen"
+                  name="fromAccountId"
+                />
+                <AccountSelectionField
+                  accounts={accounts}
+                  control={control}
+                  errorMessage={errors.toAccountId?.message}
+                  label="Cuenta de destino"
+                  name="toAccountId"
+                />
+              </>
+            ) : (
+              <>
+                <AccountSelectionField
+                  accounts={accounts}
+                  control={control}
+                  errorMessage={errors.accountId?.message}
+                  label="Cuenta"
+                  name="accountId"
+                />
+                <CategorySelectionField
+                  categories={filteredCategories}
+                  control={control}
+                  errorMessage={errors.categoryId?.message}
+                />
+                </>
+              )}
+            </FormSectionCard>
+          </View>
+
+          <View onLayout={(event) => registerSectionOffset('date', event)}>
+            <FormSectionCard
+              description="Elige la fecha que corresponde a este movimiento."
+              enabled={groupFieldsInCards}
+              iconName="calendar-outline"
+              title="Fecha"
+            >
+              <View style={styles.fieldGroup}>
+                <FormFieldLabel iconName="calendar-outline" label="Fecha" />
+                <Controller
+                  control={control}
+                  name="date"
+                  render={({ field }) => (
+                    <DateField
+                      errorMessage={errors.date?.message}
+                      value={field.value}
+                      onBlur={field.onBlur}
+                      onChange={field.onChange}
+                    />
+                  )}
+                />
+              </View>
+            </FormSectionCard>
+          </View>
+
+          <View onLayout={(event) => registerSectionOffset('note', event)}>
+            <FormSectionCard
+              description="Agrega contexto extra para recordar mejor este movimiento."
+              enabled={groupFieldsInCards}
+              iconName="document-text-outline"
+              title="Notas"
+            >
+              <View style={styles.fieldGroup}>
+                <FormFieldLabel iconName="document-text-outline" label="Nota" />
+                <Controller
+                  control={control}
+                  name="note"
+                  render={({ field }) => (
+                    <TextInput
+                      multiline
+                      numberOfLines={3}
+                      onBlur={field.onBlur}
+                      onChangeText={field.onChange}
+                      onFocus={createFocusHandler(undefined, { extraOffset: 196 })}
+                      placeholder="Opcional"
+                      placeholderTextColor={colors.muted}
+                      style={[styles.input, styles.textArea]}
+                      textAlignVertical="top"
+                      value={field.value}
+                    />
+                  )}
+                />
+                {errors.note?.message ? (
+                  <Text style={styles.errorText}>{errors.note.message}</Text>
+                ) : null}
+              </View>
+            </FormSectionCard>
+          </View>
 
           {isLoadingReferences ? (
             <StateCard
@@ -434,13 +515,24 @@ export function TransactionForm({
             />
           ) : null}
 
-          <ActionButton
-            disabled={submitDisabled}
-            iconName="checkmark-circle-outline"
-            label={submitLabel}
-            loading={isSubmitting}
-            onPress={handleSubmit(submitTransaction)}
-          />
+          <View
+            onLayout={(event) => registerSectionOffset('submit', event)}
+            style={styles.submitSection}
+          >
+            {validationFeedbackMessage ? (
+              <View style={styles.submitFeedback}>
+                <Ionicons color={colors.warning} name="alert-circle-outline" size={18} />
+                <Text style={styles.submitFeedbackText}>{validationFeedbackMessage}</Text>
+              </View>
+            ) : null}
+            <ActionButton
+              disabled={submitDisabled}
+              iconName="checkmark-circle-outline"
+              label={submitLabel}
+              loading={isSubmitting}
+              onPress={handleSubmit(submitTransaction, handleInvalidSubmit)}
+            />
+          </View>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -1118,6 +1210,9 @@ const styles = StyleSheet.create({
   form: {
     gap: 20,
   },
+  submitSection: {
+    gap: 10,
+  },
   sheetForm: {
     gap: 22,
   },
@@ -1244,6 +1339,23 @@ const styles = StyleSheet.create({
   },
   errorText: {
     color: colors.danger,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  submitFeedback: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    borderWidth: 1,
+    borderColor: colors.warning,
+    borderRadius: 16,
+    backgroundColor: colors.surface,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  submitFeedbackText: {
+    flex: 1,
+    color: colors.text,
     fontSize: 13,
     lineHeight: 18,
   },
