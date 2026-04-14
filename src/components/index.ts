@@ -9,3 +9,4 @@ export {
 } from './AppUi';
 export { PlaceholderScreen } from './PlaceholderScreen';
 export { Screen } from './Screen';
+export { SkeletonBlock } from './Skeleton';

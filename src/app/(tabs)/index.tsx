@@ -17,6 +17,10 @@ import {
   SectionIntro,
   StateCard,
 } from '../../components';
+import {
+  DashboardHeroSkeleton,
+  DashboardSectionsSkeleton,
+} from './DashboardSkeleton';
 import { getAccountTypeLabel, isCreditAccountType } from '../../features/accounts';
 import {
   LiveEconomicIndicatorsSection,
@@ -82,15 +86,19 @@ export default function HomeScreen() {
       >
         <WelcomeHeader displayName={displayName} />
 
-        <HeroCard
-          activeAccountsCount={data.activeAccountsCount}
-          balance={data.lifetimeSummary.balance}
-          insightDescription={data.insight.description}
-          insightTitle={data.insight.title}
-          savingsRate={data.lifetimeSummary.savingsRate}
-          tone={data.insight.tone}
-          totalMoneyAvailable={data.totalMoneyAvailable}
-        />
+        {isLoading ? (
+          <DashboardHeroSkeleton />
+        ) : (
+          <HeroCard
+            activeAccountsCount={data.activeAccountsCount}
+            balance={data.lifetimeSummary.balance}
+            insightDescription={data.insight.description}
+            insightTitle={data.insight.title}
+            savingsRate={data.lifetimeSummary.savingsRate}
+            tone={data.insight.tone}
+            totalMoneyAvailable={data.totalMoneyAvailable}
+          />
+        )}
 
         <LiveEconomicIndicatorsSection
           data={liveEconomicIndicators}
@@ -98,13 +106,7 @@ export default function HomeScreen() {
           isLoading={isLiveEconomicIndicatorsLoading}
         />
 
-        {isLoading ? (
-          <StateCard
-            description="Armando tu tablero global..."
-            loading
-            title="Preparando tu panorama"
-          />
-        ) : null}
+        {isLoading ? <DashboardSectionsSkeleton /> : null}
 
         {!isLoading && errorMessage ? (
           <StateCard
