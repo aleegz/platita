@@ -27,6 +27,7 @@ import {
   SurfaceCard,
 } from '../../../components';
 import { animateNextLayout } from '../../../lib/motion';
+import { useKeyboardAwareScroll } from '../../../lib/useKeyboardAwareScroll';
 import { colors } from '../../../theme';
 import type { Account, Category, TransactionType } from '../../../types/domain';
 import { transactionFormSchema } from '../schema';
@@ -100,6 +101,7 @@ export function TransactionForm({
   );
   const selectedCategoriesAvailable =
     selectedType === 'transfer' ? true : filteredCategories.length > 0;
+  const { scrollViewRef, createFocusHandler } = useKeyboardAwareScroll();
   const submitDisabled =
     isSubmitting ||
     isLoadingReferences ||
@@ -170,6 +172,7 @@ export function TransactionForm({
         ]}
         keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
         keyboardShouldPersistTaps="handled"
+        ref={scrollViewRef}
         showsVerticalScrollIndicator={false}
       >
         <View style={[styles.form, presentation === 'sheet' ? styles.sheetForm : null]}>
@@ -251,6 +254,7 @@ export function TransactionForm({
                   keyboardType="number-pad"
                   onBlur={field.onBlur}
                   onChangeText={(value) => field.onChange(parseMoneyInput(value))}
+                  onFocus={createFocusHandler()}
                   placeholder="0"
                   placeholderTextColor={colors.muted}
                   style={[
@@ -364,6 +368,7 @@ export function TransactionForm({
                     numberOfLines={3}
                     onBlur={field.onBlur}
                     onChangeText={field.onChange}
+                    onFocus={createFocusHandler(undefined, { extraOffset: 196 })}
                     placeholder="Opcional"
                     placeholderTextColor={colors.muted}
                     style={[styles.input, styles.textArea]}

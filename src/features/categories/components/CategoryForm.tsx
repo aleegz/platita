@@ -23,6 +23,7 @@ import {
   StateCard,
   SurfaceCard,
 } from '../../../components';
+import { useKeyboardAwareScroll } from '../../../lib/useKeyboardAwareScroll';
 import { colors } from '../../../theme';
 import type { CategoryType } from '../../../types/domain';
 import {
@@ -87,6 +88,7 @@ export function CategoryForm({
   const isActive = watch('active');
   const normalizedName = categoryName.trim();
   const previewName = normalizedName.length > 0 ? normalizedName : 'Sin nombre todavía';
+  const { scrollViewRef, createFocusHandler } = useKeyboardAwareScroll();
 
   return (
     <Screen
@@ -120,6 +122,7 @@ export function CategoryForm({
           ]}
           keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
           keyboardShouldPersistTaps="handled"
+          ref={scrollViewRef}
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.form}>
@@ -165,6 +168,7 @@ export function CategoryForm({
                       autoCapitalize="words"
                       onBlur={field.onBlur}
                       onChangeText={field.onChange}
+                      onFocus={createFocusHandler()}
                       placeholder={getCategoryNamePlaceholder(categoryType)}
                       placeholderTextColor={colors.muted}
                       returnKeyType="done"

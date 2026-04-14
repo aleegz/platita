@@ -22,6 +22,7 @@ import {
   StateCard,
 } from '../../../components';
 import { createCurrencyFormatter } from '../../../lib/formatters';
+import { useKeyboardAwareScroll } from '../../../lib/useKeyboardAwareScroll';
 import { colors } from '../../../theme';
 import {
   accountTypeOptions,
@@ -77,6 +78,7 @@ export function AccountForm({
   const openingBalanceHelperText = getAccountOpeningBalanceHelperText(selectedType);
   const openingBalancePreviewLabel =
     getAccountOpeningBalancePreviewLabel(selectedType);
+  const { scrollViewRef, createFocusHandler } = useKeyboardAwareScroll();
 
   return (
     <Screen
@@ -110,6 +112,7 @@ export function AccountForm({
           ]}
           keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
           keyboardShouldPersistTaps="handled"
+          ref={scrollViewRef}
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.form}>
@@ -123,6 +126,7 @@ export function AccountForm({
                     autoCapitalize="words"
                     onBlur={field.onBlur}
                     onChangeText={field.onChange}
+                    onFocus={createFocusHandler()}
                     placeholder="Ejemplo: Mercado Pago"
                     placeholderTextColor={colors.muted}
                     style={[
@@ -198,6 +202,7 @@ export function AccountForm({
                     keyboardType="number-pad"
                     onBlur={field.onBlur}
                     onChangeText={(value) => field.onChange(parseMoneyInput(value))}
+                    onFocus={createFocusHandler()}
                     placeholder="0"
                     placeholderTextColor={colors.muted}
                     style={[
