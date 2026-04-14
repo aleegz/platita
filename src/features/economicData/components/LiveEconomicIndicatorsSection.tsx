@@ -1,6 +1,7 @@
 import { StyleSheet, View } from 'react-native';
 
-import { SectionIntro, StateCard } from '../../../components';
+import { SectionIntro, SkeletonBlock, StateCard } from '../../../components';
+import { colors } from '../../../theme';
 import { SummaryCard } from '../../dashboard';
 import {
   formatEconomicIndicatorDate,
@@ -31,13 +32,7 @@ export function LiveEconomicIndicatorsSection({
         title="Pulso económico"
       />
 
-      {isLoading ? (
-        <StateCard
-          description="Consultando inflación, dólar y riesgo país..."
-          loading
-          title="Actualizando indicadores"
-        />
-      ) : null}
+      {isLoading ? <LiveEconomicIndicatorsSkeleton /> : null}
 
       {!isLoading && errorMessage ? (
         <StateCard
@@ -116,6 +111,26 @@ export function LiveEconomicIndicatorsSection({
   );
 }
 
+function LiveEconomicIndicatorsSkeleton() {
+  return (
+    <View style={styles.grid}>
+      {Array.from({ length: 4 }).map((_, index) => (
+        <View key={index} style={styles.skeletonCard}>
+          <View style={styles.skeletonHeader}>
+            <SkeletonBlock height={12} width="46%" />
+            <SkeletonBlock height={12} width={28} />
+          </View>
+          <SkeletonBlock height={24} width="68%" />
+          <View style={styles.skeletonDescription}>
+            <SkeletonBlock height={12} width="88%" />
+            <SkeletonBlock height={12} width="64%" />
+          </View>
+        </View>
+      ))}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   section: {
     gap: 12,
@@ -124,5 +139,25 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 12,
+  },
+  skeletonCard: {
+    flex: 1,
+    minWidth: 150,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 14,
+    backgroundColor: colors.surface,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    gap: 8,
+  },
+  skeletonHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  skeletonDescription: {
+    gap: 6,
   },
 });
