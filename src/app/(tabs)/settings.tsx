@@ -305,7 +305,10 @@ export default function SettingsScreen() {
               </View>
             </Pressable>
             
-            <View style={styles.linkCard}>
+            <Pressable
+              onPress={() => router.push(backupRoute)}
+              style={styles.linkCard}
+            >
               <View style={styles.linkHeader}>
                 <View style={styles.linkIcon}>
                   <Ionicons
@@ -317,16 +320,16 @@ export default function SettingsScreen() {
                 <View style={styles.linkCopy}>
                   <Text style={styles.linkTitle}>Respaldo</Text>
                   <Text style={styles.linkDescription}>
-                    Se incorporará en versiones posteriores del MVP.
+                    Exporta e importa respaldos completos de tu base local.
                   </Text>
                 </View>
                 <Ionicons
                   color={colors.muted}
-                  name="hourglass-outline"
+                  name="chevron-forward"
                   size={18}
                 />
               </View>
-            </View>
+            </Pressable>
 
             <Pressable
               onPress={() => router.push(categoriesRoute)}
@@ -640,3 +643,4 @@ function getAccountIconName(type: Parameters<typeof getAccountTypeLabel>[0]): Ic
       return 'business-outline';
   }
 }
+

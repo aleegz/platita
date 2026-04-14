@@ -1,45 +1,160 @@
+import * as SQLite from 'expo-sqlite';
 import type { PropsWithChildren } from 'react';
-import { createContext, useContext, useEffect, useState } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
 import { initializeDatabaseAsync } from '../schema/migrations';
 import { useAppStore } from '../../store/app.store';
+import { useProfileStore } from '../../store/profile.store';
 import { useUiStore } from '../../store/ui.store';
 import type { AppDatabase } from './sqlite';
-import { openAppDatabaseAsync } from './sqlite';
+import {
+  DATABASE_OPTIONS,
+  normalizeBackupBytesForDeserialize,
+  openAppDatabaseAsync,
+} from './sqlite';
 import { colors } from '../../theme';
 
 const DatabaseContext = createContext<AppDatabase | null>(null);
+const DatabaseMaintenanceContext = createContext<{
+  replaceDatabaseAsync: (bytes: Uint8Array) => Promise<void>;
+} | null>(null);
 
 export function DatabaseProvider({ children }: PropsWithChildren) {
   const [database, setDatabase] = useState<AppDatabase | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const databaseRef = useRef<AppDatabase | null>(null);
+
+  const setDatabaseInstance = useCallback((nextDatabase: AppDatabase | null) => {
+    databaseRef.current = nextDatabase;
+    setDatabase(nextDatabase);
+  }, []);
+
+  const openInitializedDatabaseAsync = useCallback(
+    async (useNewConnection = false) => {
+      const databaseInstance = await openAppDatabaseAsync({
+        useNewConnection,
+      });
+
+      await initializeDatabaseAsync(databaseInstance);
+
+      return databaseInstance;
+    },
+    []
+  );
+
+  const closeDatabaseAsync = useCallback(async (databaseInstance?: AppDatabase | null) => {
+    await databaseInstance?.closeAsync().catch(() => undefined);
+  }, []);
+
+  const recoverDatabaseAsync = useCallback(async () => {
+    const recoveredDatabase = await openInitializedDatabaseAsync(true);
+
+    setErrorMessage(null);
+    setDatabaseInstance(recoveredDatabase);
+    useAppStore.getState().markAppAsLoaded();
+  }, [openInitializedDatabaseAsync, setDatabaseInstance]);
+
+  const replaceDatabaseAsync = useCallback(
+    async (bytes: Uint8Array) => {
+      let importedDatabase: AppDatabase | null = null;
+      let writableDatabase: AppDatabase | null = null;
+
+      useUiStore.getState().setLoadingFlag('appBootstrap', true);
+      setErrorMessage(null);
+
+      try {
+        const importedBytes = normalizeBackupBytesForDeserialize(bytes);
+
+        importedDatabase = await SQLite.deserializeDatabaseAsync(
+          importedBytes,
+          DATABASE_OPTIONS
+        );
+
+        const currentDatabase = databaseRef.current;
+
+        if (currentDatabase) {
+          await closeDatabaseAsync(currentDatabase);
+        }
+
+        setDatabaseInstance(null);
+
+        writableDatabase = await openAppDatabaseAsync({
+          useNewConnection: true,
+        });
+
+        await SQLite.backupDatabaseAsync({
+          sourceDatabase: importedDatabase,
+          sourceDatabaseName: 'main',
+          destDatabase: writableDatabase,
+          destDatabaseName: 'main',
+        });
+
+        await initializeDatabaseAsync(writableDatabase);
+        await closeDatabaseAsync(writableDatabase);
+        writableDatabase = null;
+        await closeDatabaseAsync(importedDatabase);
+        importedDatabase = null;
+
+        useProfileStore.getState().reset();
+
+        const liveDatabase = await openInitializedDatabaseAsync(true);
+
+        setDatabaseInstance(liveDatabase);
+        useAppStore.getState().markAppAsLoaded();
+      } catch (error) {
+        console.error(error);
+
+        await closeDatabaseAsync(writableDatabase);
+        await closeDatabaseAsync(importedDatabase);
+
+        try {
+          await recoverDatabaseAsync();
+        } catch (recoveryError) {
+          console.error(recoveryError);
+          setErrorMessage(
+            'No se pudo recuperar la base SQLite local después de restaurar el respaldo.'
+          );
+          useAppStore.getState().markAppAsLoaded();
+        }
+
+        throw error;
+      } finally {
+        useUiStore.getState().setLoadingFlag('appBootstrap', false);
+      }
+    },
+    [
+      closeDatabaseAsync,
+      openInitializedDatabaseAsync,
+      recoverDatabaseAsync,
+      setDatabaseInstance,
+    ]
+  );
 
   useEffect(() => {
     let isMounted = true;
-    let openedDatabase: AppDatabase | null = null;
 
     async function initialize() {
       useUiStore.getState().setLoadingFlag('appBootstrap', true);
 
       try {
-        const databaseInstance = await openAppDatabaseAsync();
-        openedDatabase = databaseInstance;
-
-        await initializeDatabaseAsync(databaseInstance);
+        const databaseInstance = await openInitializedDatabaseAsync();
 
         if (!isMounted) {
-          await databaseInstance.closeAsync();
+          await closeDatabaseAsync(databaseInstance);
           return;
         }
 
-        setDatabase(databaseInstance);
+        setDatabaseInstance(databaseInstance);
         useAppStore.getState().markAppAsLoaded();
       } catch (error) {
-        if (openedDatabase) {
-          await openedDatabase.closeAsync().catch(() => undefined);
-        }
-
         if (!isMounted) {
           return;
         }
@@ -57,12 +172,9 @@ export function DatabaseProvider({ children }: PropsWithChildren) {
 
     return () => {
       isMounted = false;
-
-      if (openedDatabase) {
-        void openedDatabase.closeAsync().catch(() => undefined);
-      }
+      void closeDatabaseAsync(databaseRef.current);
     };
-  }, []);
+  }, [closeDatabaseAsync, openInitializedDatabaseAsync, setDatabaseInstance]);
 
   if (errorMessage) {
     return (
@@ -84,9 +196,11 @@ export function DatabaseProvider({ children }: PropsWithChildren) {
   }
 
   return (
-    <DatabaseContext.Provider value={database}>
-      {children}
-    </DatabaseContext.Provider>
+    <DatabaseMaintenanceContext.Provider value={{ replaceDatabaseAsync }}>
+      <DatabaseContext.Provider value={database}>
+        {children}
+      </DatabaseContext.Provider>
+    </DatabaseMaintenanceContext.Provider>
   );
 }
 
@@ -98,6 +212,18 @@ export function useDatabase() {
   }
 
   return database;
+}
+
+export function useDatabaseMaintenance() {
+  const maintenance = useContext(DatabaseMaintenanceContext);
+
+  if (!maintenance) {
+    throw new Error(
+      'useDatabaseMaintenance must be used within DatabaseProvider.'
+    );
+  }
+
+  return maintenance;
 }
 
 type DatabaseStatusScreenProps = {

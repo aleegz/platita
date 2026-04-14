@@ -63,7 +63,6 @@ Hoy ya permite:
 
 Todavía no incluye:
 
-- exportación/importación de backup funcional
 - sincronización en la nube
 - integración bancaria
 - automatización completa de carga de movimientos
@@ -378,7 +377,7 @@ Si quieres profundizar en la base técnica del proyecto, aquí hay documentació
 
 Líneas razonables para la próxima etapa del proyecto:
 
-- exportación e importación de backups locales
+- mejorar la ergonomía de los respaldos locales y sumar opciones automáticas
 - integrar de forma visible el análisis salarial dentro de la experiencia principal
 - sumar pruebas automatizadas sobre servicios y repositorios
 - pulir release y testing en dispositivo
@@ -387,3 +386,5 @@ Líneas razonables para la próxima etapa del proyecto:
 ## Licencia
 
 Este proyecto se distribuye bajo licencia [MIT](./LICENSE).
+
+
