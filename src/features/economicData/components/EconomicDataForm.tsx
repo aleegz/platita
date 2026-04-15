@@ -1,5 +1,11 @@
+import { useEffect, useRef, useState } from 'react';
+import { Ionicons } from '@expo/vector-icons';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Controller, useForm } from 'react-hook-form';
+import {
+  Controller,
+  useForm,
+  type SubmitErrorHandler,
+} from 'react-hook-form';
 import {
   StyleSheet,
   Text,
@@ -49,6 +55,34 @@ export function EconomicDataForm({
     resolver: zodResolver(economicDataFormSchema),
     defaultValues,
   });
+  const [showSubmitValidationFeedback, setShowSubmitValidationFeedback] = useState(false);
+  const dollarOfficialInputRef = useRef<TextInput | null>(null);
+  const inflationInputRef = useRef<TextInput | null>(null);
+  const validationFeedbackMessage =
+    showSubmitValidationFeedback && Object.keys(errors).length > 0
+      ? 'Revisá los campos marcados antes de continuar.'
+      : null;
+
+  const handleInvalidSubmit: SubmitErrorHandler<EconomicDataFormValues> = (
+    formErrors
+  ) => {
+    setShowSubmitValidationFeedback(true);
+
+    if (formErrors.dollarOfficial) {
+      dollarOfficialInputRef.current?.focus();
+      return;
+    }
+
+    if (formErrors.inflationMonthlyBasisPoints) {
+      inflationInputRef.current?.focus();
+    }
+  };
+
+  useEffect(() => {
+    if (showSubmitValidationFeedback && Object.keys(errors).length === 0) {
+      setShowSubmitValidationFeedback(false);
+    }
+  }, [errors, showSubmitValidationFeedback]);
 
   return (
     <View style={styles.card}>
@@ -73,6 +107,7 @@ export function EconomicDataForm({
               onChangeText={(value) => field.onChange(parseIntegerInput(value))}
               placeholder="0"
               placeholderTextColor={colors.muted}
+              ref={dollarOfficialInputRef}
               style={[
                 styles.input,
                 errors.dollarOfficial ? styles.inputError : null,
@@ -113,6 +148,7 @@ export function EconomicDataForm({
               onChangeText={(value) => field.onChange(parseIntegerInput(value))}
               placeholder="0"
               placeholderTextColor={colors.muted}
+              ref={inflationInputRef}
               style={[
                 styles.input,
                 errors.inflationMonthlyBasisPoints ? styles.inputError : null,
@@ -150,14 +186,23 @@ export function EconomicDataForm({
         />
       ) : null}
 
-      <ActionButton
-        iconName="checkmark-circle-outline"
-        label="Guardar datos"
-        loading={isSubmitting}
-        onPress={handleSubmit(async (values) => {
-          await onSubmit(values);
-        })}
-      />
+      <View style={styles.submitSection}>
+        {validationFeedbackMessage ? (
+          <View style={styles.submitFeedback}>
+            <Ionicons color={colors.warning} name="alert-circle-outline" size={18} />
+            <Text style={styles.submitFeedbackText}>{validationFeedbackMessage}</Text>
+          </View>
+        ) : null}
+        <ActionButton
+          iconName="checkmark-circle-outline"
+          label="Guardar datos"
+          loading={isSubmitting}
+          onPress={handleSubmit(async (values) => {
+            setShowSubmitValidationFeedback(false);
+            await onSubmit(values);
+          }, handleInvalidSubmit)}
+        />
+      </View>
     </View>
   );
 }
@@ -201,6 +246,26 @@ const styles = StyleSheet.create({
   },
   errorText: {
     color: colors.danger,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  submitSection: {
+    gap: 10,
+  },
+  submitFeedback: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    borderWidth: 1,
+    borderColor: colors.warning,
+    borderRadius: 16,
+    backgroundColor: colors.surface,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  submitFeedbackText: {
+    flex: 1,
+    color: colors.text,
     fontSize: 13,
     lineHeight: 18,
   },

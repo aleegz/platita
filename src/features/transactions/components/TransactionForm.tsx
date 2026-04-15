@@ -118,7 +118,7 @@ export function TransactionForm({
     !selectedCategoriesAvailable;
   const validationFeedbackMessage =
     showSubmitValidationFeedback && Object.keys(errors).length > 0
-      ? 'Revisá los campos marcados antes de guardar el movimiento.'
+      ? 'Revisá los campos marcados antes de continuar.'
       : null;
   const contentBottomInset =
     presentation === 'screen' ? bottomTabBarHeight + 48 : 28;

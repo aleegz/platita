@@ -17,16 +17,14 @@ import {
   SectionIntro,
   StateCard,
 } from '../../components';
-import {
-  DashboardHeroSkeleton,
-  DashboardSectionsSkeleton,
-} from './DashboardSkeleton';
 import { getAccountTypeLabel, isCreditAccountType } from '../../features/accounts';
 import {
   LiveEconomicIndicatorsSection,
   useLiveEconomicIndicators,
 } from '../../features/economicData';
 import {
+  DashboardHeroSkeleton,
+  DashboardSectionsSkeleton,
   formatDashboardMoney,
   formatDashboardPercentage,
   type DashboardAccountSnapshot,

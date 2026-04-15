@@ -1,5 +1,11 @@
+import { useEffect, useRef, useState } from 'react';
+import { Ionicons } from '@expo/vector-icons';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Controller, useForm } from 'react-hook-form';
+import {
+  Controller,
+  useForm,
+  type SubmitErrorHandler,
+} from 'react-hook-form';
 import {
   StyleSheet,
   Text,
@@ -55,6 +61,28 @@ export function BudgetEditorForm({
       budgetAmount: defaultBudgetAmount,
     },
   });
+  const [showSubmitValidationFeedback, setShowSubmitValidationFeedback] = useState(false);
+  const budgetAmountInputRef = useRef<TextInput | null>(null);
+  const validationFeedbackMessage =
+    showSubmitValidationFeedback && Object.keys(errors).length > 0
+      ? 'Revisá los campos marcados antes de continuar.'
+      : null;
+
+  const handleInvalidSubmit: SubmitErrorHandler<BudgetEditorFormValues> = (
+    formErrors
+  ) => {
+    setShowSubmitValidationFeedback(true);
+
+    if (formErrors.budgetAmount) {
+      budgetAmountInputRef.current?.focus();
+    }
+  };
+
+  useEffect(() => {
+    if (showSubmitValidationFeedback && Object.keys(errors).length === 0) {
+      setShowSubmitValidationFeedback(false);
+    }
+  }, [errors, showSubmitValidationFeedback]);
 
   return (
     <View style={[styles.card, presentation === 'sheet' ? styles.cardSheet : null]}>
@@ -78,6 +106,7 @@ export function BudgetEditorForm({
               onChangeText={(value) => field.onChange(parseMoneyInput(value))}
               placeholder="0"
               placeholderTextColor={colors.muted}
+              ref={budgetAmountInputRef}
               style={[
                 styles.input,
                 errors.budgetAmount ? styles.inputError : null,
@@ -121,15 +150,24 @@ export function BudgetEditorForm({
           style={styles.action}
           variant="secondary"
         />
-        <ActionButton
-          iconName="checkmark-circle-outline"
-          label="Guardar"
-          loading={isSubmitting}
-          onPress={handleSubmit(async (values) => {
-            await onSubmit(values);
-          })}
-          style={styles.action}
-        />
+        <View style={styles.primaryActionSection}>
+          {validationFeedbackMessage ? (
+            <View style={styles.submitFeedback}>
+              <Ionicons color={colors.warning} name="alert-circle-outline" size={18} />
+              <Text style={styles.submitFeedbackText}>{validationFeedbackMessage}</Text>
+            </View>
+          ) : null}
+          <ActionButton
+            iconName="checkmark-circle-outline"
+            label="Guardar"
+            loading={isSubmitting}
+            onPress={handleSubmit(async (values) => {
+              setShowSubmitValidationFeedback(false);
+              await onSubmit(values);
+            }, handleInvalidSubmit)}
+            style={styles.action}
+          />
+        </View>
       </View>
     </View>
   );
@@ -204,8 +242,29 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
   },
+  primaryActionSection: {
+    flex: 1,
+    gap: 10,
+  },
   action: {
     flex: 1,
     minHeight: 52,
+  },
+  submitFeedback: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    borderWidth: 1,
+    borderColor: colors.warning,
+    borderRadius: 16,
+    backgroundColor: colors.surface,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  submitFeedbackText: {
+    flex: 1,
+    color: colors.text,
+    fontSize: 13,
+    lineHeight: 18,
   },
 });

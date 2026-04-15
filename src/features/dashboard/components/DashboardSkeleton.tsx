@@ -8,8 +8,8 @@ import {
   View,
 } from 'react-native';
 
-import { SectionIntro, SkeletonBlock } from '../../components';
-import { colors } from '../../theme';
+import { SectionIntro, SkeletonBlock } from '../../../components';
+import { colors } from '../../../theme';
 
 export function DashboardHeroSkeleton() {
   return (

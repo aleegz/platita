@@ -1,10 +1,16 @@
-import type { ComponentProps } from 'react';
+import { useEffect, useRef, useState, type ComponentProps } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { StatusBar } from 'expo-status-bar';
-import { Controller, useForm } from 'react-hook-form';
+import {
+  Controller,
+  useForm,
+  type FieldErrors,
+  type SubmitErrorHandler,
+} from 'react-hook-form';
 import {
   KeyboardAvoidingView,
+  type LayoutChangeEvent,
   Platform,
   Pressable,
   ScrollView,
@@ -35,6 +41,7 @@ import {
 import { categoryFormSchema, type CategoryFormValues } from '../schema';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
+type FormSectionAnchor = 'name' | 'type' | 'submit';
 
 type CategoryFormProps = {
   title: string;
@@ -89,6 +96,61 @@ export function CategoryForm({
   const normalizedName = categoryName.trim();
   const previewName = normalizedName.length > 0 ? normalizedName : 'Sin nombre todavía';
   const { scrollViewRef, createFocusHandler } = useKeyboardAwareScroll();
+  const [showSubmitValidationFeedback, setShowSubmitValidationFeedback] = useState(false);
+  const sectionOffsetsRef = useRef<Partial<Record<FormSectionAnchor, number>>>({});
+  const validationFeedbackMessage =
+    showSubmitValidationFeedback && Object.keys(errors).length > 0
+      ? 'Revisá los campos marcados antes de continuar.'
+      : null;
+
+  function registerSectionOffset(
+    anchor: FormSectionAnchor,
+    event: LayoutChangeEvent
+  ) {
+    sectionOffsetsRef.current[anchor] = event.nativeEvent.layout.y;
+  }
+
+  function scrollToAnchor(anchor: FormSectionAnchor) {
+    const offset = sectionOffsetsRef.current[anchor];
+
+    if (typeof offset !== 'number') {
+      return;
+    }
+
+    scrollViewRef.current?.scrollTo({
+      y: Math.max(offset - 24, 0),
+      animated: true,
+    });
+  }
+
+  function resolveFirstErrorAnchor(
+    formErrors: FieldErrors<CategoryFormValues>
+  ): FormSectionAnchor {
+    const orderedFields: Array<{
+      anchor: FormSectionAnchor;
+      fields: Array<keyof CategoryFormValues>;
+    }> = [
+      { anchor: 'name', fields: ['name'] },
+      { anchor: 'type', fields: ['type'] },
+    ];
+
+    const matchingSection = orderedFields.find(({ fields }) =>
+      fields.some((fieldName) => Boolean(formErrors[fieldName]))
+    );
+
+    return matchingSection?.anchor ?? 'submit';
+  }
+
+  const handleInvalidSubmit: SubmitErrorHandler<CategoryFormValues> = (formErrors) => {
+    setShowSubmitValidationFeedback(true);
+    scrollToAnchor(resolveFirstErrorAnchor(formErrors));
+  };
+
+  useEffect(() => {
+    if (showSubmitValidationFeedback && Object.keys(errors).length === 0) {
+      setShowSubmitValidationFeedback(false);
+    }
+  }, [errors, showSubmitValidationFeedback]);
 
   return (
     <Screen
@@ -153,128 +215,132 @@ export function CategoryForm({
               </View>
             </SurfaceCard>
 
-            <FormSectionCard
-              description="Usa un nombre corto y fácil de reconocer en tus formularios y reportes."
-              iconName="pricetags-outline"
-              title="Nombre"
-            >
-              <View style={styles.fieldGroup}>
-                <FormFieldLabel iconName="pricetags-outline" label="Nombre visible" />
-                <Controller
-                  control={control}
-                  name="name"
-                  render={({ field }) => (
-                    <TextInput
-                      autoCapitalize="words"
-                      onBlur={field.onBlur}
-                      onChangeText={field.onChange}
-                      onFocus={createFocusHandler()}
-                      placeholder={getCategoryNamePlaceholder(categoryType)}
-                      placeholderTextColor={colors.muted}
-                      returnKeyType="done"
-                      style={[
-                        styles.input,
-                        errors.name ? styles.inputError : null,
-                      ]}
-                      value={field.value}
-                    />
-                  )}
-                />
-                <Text style={styles.helperText}>
-                  Ejemplo: Supermercado, Alquiler, Sueldo o Intereses.
-                </Text>
-                {errors.name?.message ? (
-                  <Text style={styles.errorText}>{errors.name.message}</Text>
-                ) : null}
-              </View>
-            </FormSectionCard>
+            <View onLayout={(event) => registerSectionOffset('name', event)}>
+              <FormSectionCard
+                description="Usa un nombre corto y fácil de reconocer en tus formularios y reportes."
+                iconName="pricetags-outline"
+                title="Nombre"
+              >
+                <View style={styles.fieldGroup}>
+                  <FormFieldLabel iconName="pricetags-outline" label="Nombre visible" />
+                  <Controller
+                    control={control}
+                    name="name"
+                    render={({ field }) => (
+                      <TextInput
+                        autoCapitalize="words"
+                        onBlur={field.onBlur}
+                        onChangeText={field.onChange}
+                        onFocus={createFocusHandler()}
+                        placeholder={getCategoryNamePlaceholder(categoryType)}
+                        placeholderTextColor={colors.muted}
+                        returnKeyType="done"
+                        style={[
+                          styles.input,
+                          errors.name ? styles.inputError : null,
+                        ]}
+                        value={field.value}
+                      />
+                    )}
+                  />
+                  <Text style={styles.helperText}>
+                    Ejemplo: Supermercado, Alquiler, Sueldo o Intereses.
+                  </Text>
+                  {errors.name?.message ? (
+                    <Text style={styles.errorText}>{errors.name.message}</Text>
+                  ) : null}
+                </View>
+              </FormSectionCard>
+            </View>
 
-            <FormSectionCard
-              description="Define cómo se comportará esta categoría dentro de la app."
-              iconName="layers-outline"
-              title="Tipo de categoría"
-            >
-              <View style={styles.typeList}>
-                <Controller
-                  control={control}
-                  name="type"
-                  render={({ field }) => (
-                    <>
-                      {categoryTypeOptions.map((option) => {
-                        const isSelected = field.value === option.value;
+            <View onLayout={(event) => registerSectionOffset('type', event)}>
+              <FormSectionCard
+                description="Define cómo se comportará esta categoría dentro de la app."
+                iconName="layers-outline"
+                title="Tipo de categoría"
+              >
+                <View style={styles.typeList}>
+                  <Controller
+                    control={control}
+                    name="type"
+                    render={({ field }) => (
+                      <>
+                        {categoryTypeOptions.map((option) => {
+                          const isSelected = field.value === option.value;
 
-                        return (
-                          <Pressable
-                            key={option.value}
-                            onPress={() => field.onChange(option.value)}
-                            style={[
-                              styles.typeCard,
-                              isSelected ? styles.typeCardSelected : null,
-                            ]}
-                          >
-                            <View style={styles.typeCardMain}>
-                              <View
-                                style={[
-                                  styles.typeCardIcon,
-                                  isSelected ? styles.typeCardIconSelected : null,
-                                ]}
-                              >
+                          return (
+                            <Pressable
+                              key={option.value}
+                              onPress={() => field.onChange(option.value)}
+                              style={[
+                                styles.typeCard,
+                                isSelected ? styles.typeCardSelected : null,
+                              ]}
+                            >
+                              <View style={styles.typeCardMain}>
+                                <View
+                                  style={[
+                                    styles.typeCardIcon,
+                                    isSelected ? styles.typeCardIconSelected : null,
+                                  ]}
+                                >
+                                  <Ionicons
+                                    color={isSelected ? colors.primaryText : colors.text}
+                                    name={getCategoryTypeIconName(option.value)}
+                                    size={18}
+                                  />
+                                </View>
+                                <View style={styles.typeCardCopy}>
+                                  <Text
+                                    style={[
+                                      styles.typeLabel,
+                                      isSelected ? styles.typeLabelSelected : null,
+                                    ]}
+                                  >
+                                    {option.label}
+                                  </Text>
+                                  <Text
+                                    style={[
+                                      styles.typeDescription,
+                                      isSelected
+                                        ? styles.typeDescriptionSelected
+                                        : null,
+                                    ]}
+                                  >
+                                    {option.description}
+                                  </Text>
+                                  <Text
+                                    style={[
+                                      styles.typeExample,
+                                      isSelected ? styles.typeExampleSelected : null,
+                                    ]}
+                                  >
+                                    {getCategoryTypeExample(option.value)}
+                                  </Text>
+                                </View>
                                 <Ionicons
-                                  color={isSelected ? colors.primaryText : colors.text}
-                                  name={getCategoryTypeIconName(option.value)}
-                                  size={18}
+                                  color={isSelected ? colors.primaryText : colors.muted}
+                                  name={isSelected ? 'checkmark-circle' : 'ellipse-outline'}
+                                  size={20}
                                 />
                               </View>
-                              <View style={styles.typeCardCopy}>
-                                <Text
-                                  style={[
-                                    styles.typeLabel,
-                                    isSelected ? styles.typeLabelSelected : null,
-                                  ]}
-                                >
-                                  {option.label}
-                                </Text>
-                                <Text
-                                  style={[
-                                    styles.typeDescription,
-                                    isSelected
-                                      ? styles.typeDescriptionSelected
-                                      : null,
-                                  ]}
-                                >
-                                  {option.description}
-                                </Text>
-                                <Text
-                                  style={[
-                                    styles.typeExample,
-                                    isSelected ? styles.typeExampleSelected : null,
-                                  ]}
-                                >
-                                  {getCategoryTypeExample(option.value)}
-                                </Text>
-                              </View>
-                              <Ionicons
-                                color={isSelected ? colors.primaryText : colors.muted}
-                                name={isSelected ? 'checkmark-circle' : 'ellipse-outline'}
-                                size={20}
-                              />
-                            </View>
-                          </Pressable>
-                        );
-                      })}
-                    </>
-                  )}
-                />
-              </View>
-              <Text style={styles.helperText}>
-                {showActiveField
-                  ? 'Si la categoría ya tiene movimientos o presupuestos, su tipo no podrá cambiarse.'
-                  : 'El tipo ayuda a que la categoría aparezca en el lugar correcto al registrar movimientos.'}
-              </Text>
-              {errors.type?.message ? (
-                <Text style={styles.errorText}>{errors.type.message}</Text>
-              ) : null}
-            </FormSectionCard>
+                            </Pressable>
+                          );
+                        })}
+                      </>
+                    )}
+                  />
+                </View>
+                <Text style={styles.helperText}>
+                  {showActiveField
+                    ? 'Si la categoría ya tiene movimientos o presupuestos, su tipo no podrá cambiarse.'
+                    : 'El tipo ayuda a que la categoría aparezca en el lugar correcto al registrar movimientos.'}
+                </Text>
+                {errors.type?.message ? (
+                  <Text style={styles.errorText}>{errors.type.message}</Text>
+                ) : null}
+              </FormSectionCard>
+            </View>
 
             {showActiveField ? (
               <FormSectionCard
@@ -324,14 +390,26 @@ export function CategoryForm({
               />
             ) : null}
 
-            <ActionButton
-              iconName="checkmark-circle-outline"
-              label={submitLabel}
-              loading={isSubmitting}
-              onPress={handleSubmit(async (values) => {
-                await onSubmit(values);
-              })}
-            />
+            <View
+              onLayout={(event) => registerSectionOffset('submit', event)}
+              style={styles.submitSection}
+            >
+              {validationFeedbackMessage ? (
+                <View style={styles.submitFeedback}>
+                  <Ionicons color={colors.warning} name="alert-circle-outline" size={18} />
+                  <Text style={styles.submitFeedbackText}>{validationFeedbackMessage}</Text>
+                </View>
+              ) : null}
+              <ActionButton
+                iconName="checkmark-circle-outline"
+                label={submitLabel}
+                loading={isSubmitting}
+                onPress={handleSubmit(async (values) => {
+                  setShowSubmitValidationFeedback(false);
+                  await onSubmit(values);
+                }, handleInvalidSubmit)}
+              />
+            </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -455,6 +533,9 @@ const styles = StyleSheet.create({
   },
   form: {
     gap: 18,
+  },
+  submitSection: {
+    gap: 10,
   },
   navigationBar: {
     minHeight: 32,
@@ -683,6 +764,23 @@ const styles = StyleSheet.create({
   },
   errorText: {
     color: colors.danger,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  submitFeedback: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    borderWidth: 1,
+    borderColor: colors.warning,
+    borderRadius: 16,
+    backgroundColor: colors.surface,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  submitFeedbackText: {
+    flex: 1,
+    color: colors.text,
     fontSize: 13,
     lineHeight: 18,
   },

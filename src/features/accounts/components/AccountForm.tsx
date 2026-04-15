@@ -1,9 +1,16 @@
+import { useEffect, useRef, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { StatusBar } from 'expo-status-bar';
-import { Controller, useForm } from 'react-hook-form';
+import {
+  Controller,
+  useForm,
+  type FieldErrors,
+  type SubmitErrorHandler,
+} from 'react-hook-form';
 import {
   KeyboardAvoidingView,
+  type LayoutChangeEvent,
   Platform,
   Pressable,
   ScrollView,
@@ -33,6 +40,8 @@ import {
   type SaveAccountInput,
 } from '../types';
 import { accountFormSchema, type AccountFormValues } from '../schema';
+
+type FormSectionAnchor = 'name' | 'type' | 'initialBalance' | 'submit';
 
 type AccountFormProps = {
   title: string;
@@ -79,6 +88,62 @@ export function AccountForm({
   const openingBalancePreviewLabel =
     getAccountOpeningBalancePreviewLabel(selectedType);
   const { scrollViewRef, createFocusHandler } = useKeyboardAwareScroll();
+  const [showSubmitValidationFeedback, setShowSubmitValidationFeedback] = useState(false);
+  const sectionOffsetsRef = useRef<Partial<Record<FormSectionAnchor, number>>>({});
+  const validationFeedbackMessage =
+    showSubmitValidationFeedback && Object.keys(errors).length > 0
+      ? 'Revisá los campos marcados antes de continuar.'
+      : null;
+
+  function registerSectionOffset(
+    anchor: FormSectionAnchor,
+    event: LayoutChangeEvent
+  ) {
+    sectionOffsetsRef.current[anchor] = event.nativeEvent.layout.y;
+  }
+
+  function scrollToAnchor(anchor: FormSectionAnchor) {
+    const offset = sectionOffsetsRef.current[anchor];
+
+    if (typeof offset !== 'number') {
+      return;
+    }
+
+    scrollViewRef.current?.scrollTo({
+      y: Math.max(offset - 24, 0),
+      animated: true,
+    });
+  }
+
+  function resolveFirstErrorAnchor(
+    formErrors: FieldErrors<AccountFormValues>
+  ): FormSectionAnchor {
+    const orderedFields: Array<{
+      anchor: FormSectionAnchor;
+      fields: Array<keyof AccountFormValues>;
+    }> = [
+      { anchor: 'name', fields: ['name'] },
+      { anchor: 'type', fields: ['type'] },
+      { anchor: 'initialBalance', fields: ['initialBalance'] },
+    ];
+
+    const matchingSection = orderedFields.find(({ fields }) =>
+      fields.some((fieldName) => Boolean(formErrors[fieldName]))
+    );
+
+    return matchingSection?.anchor ?? 'submit';
+  }
+
+  const handleInvalidSubmit: SubmitErrorHandler<AccountFormValues> = (formErrors) => {
+    setShowSubmitValidationFeedback(true);
+    scrollToAnchor(resolveFirstErrorAnchor(formErrors));
+  };
+
+  useEffect(() => {
+    if (showSubmitValidationFeedback && Object.keys(errors).length === 0) {
+      setShowSubmitValidationFeedback(false);
+    }
+  }, [errors, showSubmitValidationFeedback]);
 
   return (
     <Screen
@@ -116,7 +181,10 @@ export function AccountForm({
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.form}>
-            <View style={styles.fieldGroup}>
+            <View
+              onLayout={(event) => registerSectionOffset('name', event)}
+              style={styles.fieldGroup}
+            >
               <FormFieldLabel iconName="card-outline" label="Nombre" />
               <Controller
                 control={control}
@@ -142,7 +210,10 @@ export function AccountForm({
               ) : null}
             </View>
 
-            <View style={styles.fieldGroup}>
+            <View
+              onLayout={(event) => registerSectionOffset('type', event)}
+              style={styles.fieldGroup}
+            >
               <FormFieldLabel iconName="layers-outline" label="Tipo de cuenta" />
               <View style={styles.typeList}>
                 <Controller
@@ -192,7 +263,10 @@ export function AccountForm({
               ) : null}
             </View>
 
-            <View style={styles.fieldGroup}>
+            <View
+              onLayout={(event) => registerSectionOffset('initialBalance', event)}
+              style={styles.fieldGroup}
+            >
               <FormFieldLabel iconName="cash-outline" label={openingBalanceLabel} />
               <Controller
                 control={control}
@@ -270,14 +344,26 @@ export function AccountForm({
               />
             ) : null}
 
-            <ActionButton
-              iconName="checkmark-circle-outline"
-              label={submitLabel}
-              loading={isSubmitting}
-              onPress={handleSubmit(async (values) => {
-                await onSubmit(values);
-              })}
-            />
+            <View
+              onLayout={(event) => registerSectionOffset('submit', event)}
+              style={styles.submitSection}
+            >
+              {validationFeedbackMessage ? (
+                <View style={styles.submitFeedback}>
+                  <Ionicons color={colors.warning} name="alert-circle-outline" size={18} />
+                  <Text style={styles.submitFeedbackText}>{validationFeedbackMessage}</Text>
+                </View>
+              ) : null}
+              <ActionButton
+                iconName="checkmark-circle-outline"
+                label={submitLabel}
+                loading={isSubmitting}
+                onPress={handleSubmit(async (values) => {
+                  setShowSubmitValidationFeedback(false);
+                  await onSubmit(values);
+                }, handleInvalidSubmit)}
+              />
+            </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -301,6 +387,9 @@ const styles = StyleSheet.create({
   },
   form: {
     gap: 22,
+  },
+  submitSection: {
+    gap: 10,
   },
   navigationBar: {
     minHeight: 32,
@@ -349,6 +438,23 @@ const styles = StyleSheet.create({
   },
   errorText: {
     color: colors.danger,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  submitFeedback: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    borderWidth: 1,
+    borderColor: colors.warning,
+    borderRadius: 16,
+    backgroundColor: colors.surface,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  submitFeedbackText: {
+    flex: 1,
+    color: colors.text,
     fontSize: 13,
     lineHeight: 18,
   },

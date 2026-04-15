@@ -1,6 +1,11 @@
+import { useEffect, useRef, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Controller, useForm } from 'react-hook-form';
+import {
+  Controller,
+  useForm,
+  type SubmitErrorHandler,
+} from 'react-hook-form';
 import {
   KeyboardAvoidingView,
   Modal,
@@ -11,7 +16,6 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { useEffect } from 'react';
 
 import {
   ActionButton,
@@ -56,6 +60,12 @@ export function ProfileNameModal({
       displayName: defaultValue,
     },
   });
+  const [showSubmitValidationFeedback, setShowSubmitValidationFeedback] = useState(false);
+  const displayNameInputRef = useRef<TextInput | null>(null);
+  const validationFeedbackMessage =
+    showSubmitValidationFeedback && Object.keys(errors).length > 0
+      ? 'Revisá los campos marcados antes de continuar.'
+      : null;
 
   useEffect(() => {
     if (!visible) {
@@ -65,7 +75,24 @@ export function ProfileNameModal({
     reset({
       displayName: defaultValue,
     });
+    setShowSubmitValidationFeedback(false);
   }, [defaultValue, reset, visible]);
+
+  const handleInvalidSubmit: SubmitErrorHandler<UserProfileFormValues> = (
+    formErrors
+  ) => {
+    setShowSubmitValidationFeedback(true);
+
+    if (formErrors.displayName) {
+      displayNameInputRef.current?.focus();
+    }
+  };
+
+  useEffect(() => {
+    if (showSubmitValidationFeedback && Object.keys(errors).length === 0) {
+      setShowSubmitValidationFeedback(false);
+    }
+  }, [errors, showSubmitValidationFeedback]);
 
   const isWelcome = mode === 'welcome';
 
@@ -130,6 +157,7 @@ export function ProfileNameModal({
                     onChangeText={field.onChange}
                     placeholder="Ejemplo: Alejandro"
                     placeholderTextColor={colors.muted}
+                    ref={displayNameInputRef}
                     returnKeyType="done"
                     style={[
                       styles.input,
@@ -167,15 +195,24 @@ export function ProfileNameModal({
                   variant="secondary"
                 />
               ) : null}
-              <ActionButton
-                iconName="checkmark-circle-outline"
-                label={isWelcome ? 'Continuar' : 'Guardar'}
-                loading={isSubmitting}
-                onPress={handleSubmit(async (values) => {
-                  await onSubmit(values);
-                })}
-                style={styles.action}
-              />
+              <View style={styles.primaryActionSection}>
+                {validationFeedbackMessage ? (
+                  <View style={styles.submitFeedback}>
+                    <Ionicons color={colors.warning} name="alert-circle-outline" size={18} />
+                    <Text style={styles.submitFeedbackText}>{validationFeedbackMessage}</Text>
+                  </View>
+                ) : null}
+                <ActionButton
+                  iconName="checkmark-circle-outline"
+                  label={isWelcome ? 'Continuar' : 'Guardar'}
+                  loading={isSubmitting}
+                  onPress={handleSubmit(async (values) => {
+                    setShowSubmitValidationFeedback(false);
+                    await onSubmit(values);
+                  }, handleInvalidSubmit)}
+                  style={styles.action}
+                />
+              </View>
             </View>
           </View>
         </KeyboardAvoidingView>
@@ -286,7 +323,28 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
   },
+  primaryActionSection: {
+    flex: 1,
+    gap: 10,
+  },
   action: {
     flex: 1,
+  },
+  submitFeedback: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    borderWidth: 1,
+    borderColor: colors.warning,
+    borderRadius: 16,
+    backgroundColor: colors.surface,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  submitFeedbackText: {
+    flex: 1,
+    color: colors.text,
+    fontSize: 13,
+    lineHeight: 18,
   },
 });

@@ -1,4 +1,8 @@
 export { SummaryCard } from './components/SummaryCard';
+export {
+  DashboardHeroSkeleton,
+  DashboardSectionsSkeleton,
+} from './components/DashboardSkeleton';
 export { useDashboard } from './hooks';
 export { createDashboardService } from './service';
 export {
