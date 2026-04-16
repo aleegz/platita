@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import * as DocumentPicker from 'expo-document-picker';
+import { Platform } from 'react-native';
 
 import {
   useDatabase,
@@ -40,6 +41,18 @@ type BackupHookState = {
   clearPendingImport: () => void;
   clearLastRestore: () => void;
 };
+
+const SQLITE_DOCUMENT_MIME_TYPES = [
+  'application/x-sqlite3',
+  'application/vnd.sqlite3',
+  'application/sqlite',
+  'application/x-sqlite',
+];
+const SQLITE_DOCUMENT_EXTENSIONS = ['.sqlite', '.sqlite3', '.db'];
+const BACKUP_DOCUMENT_PICKER_TYPES =
+  Platform.OS === 'web'
+    ? [...SQLITE_DOCUMENT_MIME_TYPES, ...SQLITE_DOCUMENT_EXTENSIONS]
+    : SQLITE_DOCUMENT_MIME_TYPES;
 
 export function useBackup(): BackupHookState {
   const database = useDatabase();
@@ -118,7 +131,7 @@ export function useBackup(): BackupHookState {
     try {
       const result = await DocumentPicker.getDocumentAsync({
         copyToCacheDirectory: true,
-        type: '*/*',
+        type: BACKUP_DOCUMENT_PICKER_TYPES,
       });
 
       if (result.canceled) {
