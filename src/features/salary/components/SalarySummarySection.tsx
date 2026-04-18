@@ -7,19 +7,29 @@ import {
 
 import { SummaryCard } from '../../dashboard';
 import { colors } from '../../../theme';
-import { useSalaryAnalysis } from '../hooks';
+import { useSalaryAnalysisForPeriod } from '../hooks';
 import {
   formatSalaryMoneyArs,
   formatSalaryMoneyUsd,
   formatSalaryPercentage,
 } from '../types';
 
-export function SalarySummarySection() {
-  const { data, errorMessage, isLoading } = useSalaryAnalysis();
+type SalarySummarySectionProps = {
+  month: number;
+  year: number;
+  title?: string;
+};
+
+export function SalarySummarySection({
+  month,
+  year,
+  title = 'Análisis salarial',
+}: SalarySummarySectionProps) {
+  const { data, errorMessage, isLoading } = useSalaryAnalysisForPeriod(month, year);
 
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>Análisis salarial</Text>
+      <Text style={styles.sectionTitle}>{title}</Text>
 
       {isLoading ? (
         <View style={styles.infoCard}>

@@ -2,8 +2,10 @@ import type { ComponentProps } from 'react';
 import { useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
+import { useRouter } from 'expo-router';
 import Svg, { Circle } from 'react-native-svg';
 import {
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -13,6 +15,7 @@ import {
 import type { LayoutChangeEvent } from 'react-native';
 
 import {
+  ActionButton,
   Screen,
   SectionIntro,
   StateCard,
@@ -35,6 +38,9 @@ import {
   type DashboardTrendPoint,
   useDashboard,
 } from '../../features/dashboard';
+import {
+  createMonthlyAnalysisRoute,
+} from '../../features/monthlyAnalysis';
 import {
   formatTransactionDate,
   getTransactionAmountPrefix,
@@ -417,6 +423,7 @@ function AnnualAnalysisSection({
   summary,
   points,
 }: AnnualAnalysisSectionProps) {
+  const router = useRouter();
   const [chartWidth, setChartWidth] = useState(0);
   const chartHeight = 116;
   const resolvedChartWidth = chartWidth > 0 ? chartWidth : 320;
@@ -494,6 +501,19 @@ function AnnualAnalysisSection({
         />
       </View>
 
+      <ActionButton
+        compact
+        iconName="calendar-outline"
+        label="Ver análisis mensual"
+        onPress={() => {
+          const entryPoint = getAnnualAnalysisEntryPoint(points, summary.year);
+
+          router.push(createMonthlyAnalysisRoute(entryPoint.year, entryPoint.month));
+        }}
+        style={styles.annualActionButton}
+        variant="secondary"
+      />
+
       <View style={styles.annualLegend}>
         <LegendDot color={colors.success} label="Ingresos" />
         <LegendDot color={colors.danger} label="Egresos" />
@@ -544,8 +564,13 @@ function AnnualAnalysisSection({
               const performance = getAnnualPointPerformance(point);
 
               return (
-                <View
+                <Pressable
+                  accessibilityHint={`Abrir análisis mensual de ${point.label} ${point.year}`}
+                  accessibilityRole="button"
                   key={`${point.year}-${point.month}`}
+                  onPress={() =>
+                    router.push(createMonthlyAnalysisRoute(point.year, point.month))
+                  }
                   style={[
                     styles.annualColumn,
                     {
@@ -605,7 +630,7 @@ function AnnualAnalysisSection({
                       },
                     ]}
                   />
-                </View>
+                </Pressable>
               );
             })}
           </View>
@@ -650,6 +675,24 @@ function AnnualMetricCard({
       </Text>
     </View>
   );
+}
+
+function getAnnualAnalysisEntryPoint(
+  points: DashboardAnnualPoint[],
+  fallbackYear: number
+) {
+  const activePoint = [...points]
+    .reverse()
+    .find((point) => point.income > 0 || point.expense > 0 || point.yield > 0);
+
+  if (activePoint) {
+    return activePoint;
+  }
+
+  return {
+    month: 1,
+    year: fallbackYear,
+  };
 }
 
 type AccountAllocationChartProps = {
@@ -1395,6 +1438,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 10,
+  },
+  annualActionButton: {
+    alignSelf: 'flex-start',
   },
   annualMetricCard: {
     flex: 1,

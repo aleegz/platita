@@ -1,5 +1,5 @@
 export { SalarySummarySection } from './components/SalarySummarySection';
-export { useSalaryAnalysis } from './hooks';
+export { useSalaryAnalysis, useSalaryAnalysisForPeriod } from './hooks';
 export { createSalaryService } from './service';
 export {
   createEmptySalaryAnalysisData,

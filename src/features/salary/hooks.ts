@@ -19,13 +19,14 @@ type SalaryAnalysisState = {
   refresh: () => Promise<void>;
 };
 
-export function useSalaryAnalysis(): SalaryAnalysisState {
+export function useSalaryAnalysisForPeriod(
+  month: number,
+  year: number
+): SalaryAnalysisState {
   const database = useDatabase();
   const isFocused = useIsFocused();
-  const selectedMonth = useAppStore(appStoreSelectors.selectedMonth);
-  const selectedYear = useAppStore(appStoreSelectors.selectedYear);
   const [data, setData] = useState<SalaryAnalysisData>(() =>
-    createEmptySalaryAnalysisData(selectedMonth, selectedYear)
+    createEmptySalaryAnalysisData(month, year)
   );
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -35,16 +36,13 @@ export function useSalaryAnalysis(): SalaryAnalysisState {
     setErrorMessage(null);
 
     try {
-      const nextData = await createSalaryService(database).getSalaryAnalysis(
-        selectedMonth,
-        selectedYear
-      );
+      const nextData = await createSalaryService(database).getSalaryAnalysis(month, year);
 
       setData(nextData);
     } catch (error) {
       console.error(error);
       setErrorMessage('No se pudo calcular el análisis salarial.');
-      setData(createEmptySalaryAnalysisData(selectedMonth, selectedYear));
+      setData(createEmptySalaryAnalysisData(month, year));
     } finally {
       setIsLoading(false);
     }
@@ -56,14 +54,21 @@ export function useSalaryAnalysis(): SalaryAnalysisState {
     }
 
     void refresh();
-  }, [database, isFocused, selectedMonth, selectedYear]);
+  }, [database, isFocused, month, year]);
 
   return {
     data,
     isLoading,
     errorMessage,
-    selectedMonth,
-    selectedYear,
+    selectedMonth: month,
+    selectedYear: year,
     refresh,
   };
+}
+
+export function useSalaryAnalysis(): SalaryAnalysisState {
+  const selectedMonth = useAppStore(appStoreSelectors.selectedMonth);
+  const selectedYear = useAppStore(appStoreSelectors.selectedYear);
+
+  return useSalaryAnalysisForPeriod(selectedMonth, selectedYear);
 }
