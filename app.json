@@ -22,19 +22,19 @@
         {
           "backgroundColor": "#0F1115",
           "resizeMode": "contain",
-          "image": "./assets/logo.png",
-          "imageWidth": 288,
+          "image": "./assets/splash_screen.png",
+          "imageWidth": 320,
           "android": {
             "backgroundColor": "#0F1115",
-            "image": "./assets/logo.png",
-            "imageWidth": 288,
+            "image": "./assets/splash_screen.png",
+            "imageWidth": 320,
             "resizeMode": "contain"
           },
           "ios": {
             "backgroundColor": "#0F1115",
-            "image": "./assets/splash.png",
-            "resizeMode": "cover",
-            "enableFullScreenImage_legacy": true
+            "image": "./assets/splash_screen.png",
+            "imageWidth": 320,
+            "resizeMode": "contain"
           }
         }
       ]
