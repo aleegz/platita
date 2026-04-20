@@ -16,10 +16,8 @@ import {
   ActionButton,
   PeriodSwitcher,
   Screen,
-  SectionIntro,
   SheetHeader,
   StateCard,
-  SurfaceCard,
 } from '../../components';
 import { useAppStore } from '../../store/app.store';
 import { useFiltersStore } from '../../store/filters.store';
@@ -108,6 +106,64 @@ export default function MovementsScreen() {
       label: category.name,
     })),
   ];
+  const selectedTypeLabel =
+    typeOptions.find((option) => option.id === (transactionFilters.type ?? 'all'))?.label ??
+    'Todos';
+  const selectedAccountLabel =
+    accountOptions.find((option) => option.id === (transactionFilters.accountId ?? 'all'))
+      ?.label ?? 'Todas';
+  const selectedCategoryLabel =
+    categoryOptions.find((option) => option.id === (transactionFilters.categoryId ?? 'all'))
+      ?.label ?? 'Todas';
+  const hasActiveFilters =
+    transactionFilters.type !== null ||
+    transactionFilters.accountId !== null ||
+    transactionFilters.categoryId !== null;
+  const activeFilterConfig =
+    openFilter === 'type'
+      ? {
+          iconName: 'swap-horizontal-outline' as const,
+          title: 'Filtrar por tipo',
+          description: 'Elige qué movimientos querés ver en la lista.',
+          options: typeOptions,
+          selectedId: transactionFilters.type ?? 'all',
+          onSelect: (value: string) => {
+            setTransactionFilters({
+              type: value === 'all' ? null : (value as TransactionType),
+              categoryId: null,
+            });
+            setOpenFilter(null);
+          },
+        }
+      : openFilter === 'account'
+        ? {
+            iconName: 'wallet-outline' as const,
+            title: 'Filtrar por cuenta',
+            description: 'Mostrá solo los movimientos de una cuenta puntual.',
+            options: accountOptions,
+            selectedId: transactionFilters.accountId ?? 'all',
+            onSelect: (value: string) => {
+              setTransactionFilters({
+                accountId: value === 'all' ? null : value,
+              });
+              setOpenFilter(null);
+            },
+          }
+        : openFilter === 'category'
+          ? {
+              iconName: 'pricetags-outline' as const,
+              title: 'Filtrar por categoría',
+              description: 'Afiná la lista con una categoría específica.',
+              options: categoryOptions,
+              selectedId: transactionFilters.categoryId ?? 'all',
+              onSelect: (value: string) => {
+                setTransactionFilters({
+                  categoryId: value === 'all' ? null : value,
+                });
+                setOpenFilter(null);
+              },
+            }
+          : null;
 
   function handleDeletePress(transaction: Transaction) {
     setTransactionPendingDelete(transaction);
@@ -167,81 +223,87 @@ export default function MovementsScreen() {
           value={formatPeriodLabel(selectedMonth, selectedYear)}
         />
 
-        <SurfaceCard style={styles.filtersBlock}>
+        <View style={styles.filtersBlock}>
           <View style={styles.filtersHeader}>
-            <SectionIntro
-              description="Ajusta tipo, cuenta y categoría para leer el registro con más foco."
-              iconName="options-outline"
-              style={styles.filtersIntro}
-              title="Filtros rápidos"
-            />
+            <View style={styles.filtersHeaderCopy}>
+              <Text style={styles.filtersEyebrow}>Filtros rápidos</Text>
+              <Text style={styles.filtersTitle}>Ajustá la lista sin tapar movimientos</Text>
+            </View>
             <Pressable
+              disabled={!hasActiveFilters}
               onPress={() => {
                 resetTransactionFilters();
                 setOpenFilter(null);
               }}
-              style={styles.resetFiltersButton}
+              style={[
+                styles.resetFiltersButton,
+                !hasActiveFilters ? styles.resetFiltersButtonDisabled : null,
+              ]}
             >
-              <Text style={styles.resetText}>Limpiar filtros</Text>
+              <Text
+                style={[
+                  styles.resetText,
+                  !hasActiveFilters ? styles.resetTextDisabled : null,
+                ]}
+              >
+                Limpiar
+              </Text>
             </Pressable>
           </View>
 
-          <FilterSelect
-            iconName="swap-horizontal-outline"
-            isOpen={openFilter === 'type'}
-            label="Tipo"
-            onToggle={() =>
-              setOpenFilter((current) => (current === 'type' ? null : 'type'))
-            }
-            options={typeOptions}
-            selectedId={transactionFilters.type ?? 'all'}
-            onSelect={(value) => {
-              setTransactionFilters({
-                type: value === 'all' ? null : (value as TransactionType),
-                categoryId: null,
-              });
-              setOpenFilter(null);
-            }}
-          />
-
-          <FilterSelect
-            iconName="wallet-outline"
-            isOpen={openFilter === 'account'}
-            label="Cuenta"
-            onToggle={() =>
-              setOpenFilter((current) => (current === 'account' ? null : 'account'))
-            }
-            options={accountOptions}
-            selectedId={transactionFilters.accountId ?? 'all'}
-            onSelect={(value) => {
-              setTransactionFilters({
-                accountId: value === 'all' ? null : value,
-              });
-              setOpenFilter(null);
-            }}
-          />
-
-          {transactionFilters.type !== 'transfer' ? (
-            <FilterSelect
-              iconName="pricetags-outline"
-              isOpen={openFilter === 'category'}
-              label="Categoría"
-              onToggle={() =>
-                setOpenFilter((current) =>
-                  current === 'category' ? null : 'category'
-                )
+          <ScrollView
+            contentContainerStyle={styles.filtersRail}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+          >
+            <FilterChip
+              iconName="swap-horizontal-outline"
+              isActive={transactionFilters.type !== null}
+              label="Tipo"
+              onPress={() =>
+                setOpenFilter((current) => (current === 'type' ? null : 'type'))
               }
-              options={categoryOptions}
-              selectedId={transactionFilters.categoryId ?? 'all'}
-              onSelect={(value) => {
-                setTransactionFilters({
-                  categoryId: value === 'all' ? null : value,
-                });
-                setOpenFilter(null);
-              }}
+              value={selectedTypeLabel}
             />
-          ) : null}
-        </SurfaceCard>
+
+            <FilterChip
+              iconName="wallet-outline"
+              isActive={transactionFilters.accountId !== null}
+              label="Cuenta"
+              onPress={() =>
+                setOpenFilter((current) => (current === 'account' ? null : 'account'))
+              }
+              value={selectedAccountLabel}
+            />
+
+            {transactionFilters.type !== 'transfer' ? (
+              <FilterChip
+                iconName="pricetags-outline"
+                isActive={transactionFilters.categoryId !== null}
+                label="Categoría"
+                onPress={() =>
+                  setOpenFilter((current) =>
+                    current === 'category' ? null : 'category'
+                  )
+                }
+                value={selectedCategoryLabel}
+              />
+            ) : null}
+
+            {hasActiveFilters ? (
+              <Pressable
+                onPress={() => {
+                  resetTransactionFilters();
+                  setOpenFilter(null);
+                }}
+                style={styles.clearRailChip}
+              >
+                <Ionicons color={colors.muted} name="close-circle-outline" size={16} />
+                <Text style={styles.clearRailChipText}>Limpiar filtros</Text>
+              </Pressable>
+            ) : null}
+          </ScrollView>
+        </View>
 
         {isLoading ? (
           <StateCard
@@ -382,6 +444,61 @@ export default function MovementsScreen() {
       </ScrollView>
 
       <Modal
+        animationType="slide"
+        onRequestClose={() => setOpenFilter(null)}
+        transparent
+        visible={activeFilterConfig !== null}
+      >
+        <View style={styles.modalOverlay}>
+          <Pressable onPress={() => setOpenFilter(null)} style={styles.modalBackdrop} />
+          <View style={styles.filterSheet}>
+            <View style={styles.editSheetHandle} />
+            {activeFilterConfig ? (
+              <>
+                <SheetHeader
+                  description={activeFilterConfig.description}
+                  iconName={activeFilterConfig.iconName}
+                  onClose={() => setOpenFilter(null)}
+                  title={activeFilterConfig.title}
+                />
+                <ScrollView
+                  contentContainerStyle={styles.filterSheetContent}
+                  showsVerticalScrollIndicator={false}
+                >
+                  {activeFilterConfig.options.map((item) => {
+                    const isSelected = item.id === activeFilterConfig.selectedId;
+
+                    return (
+                      <Pressable
+                        key={item.id}
+                        onPress={() => activeFilterConfig.onSelect(item.id)}
+                        style={[
+                          styles.filterSheetOption,
+                          isSelected ? styles.filterSheetOptionSelected : null,
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.filterSheetOptionText,
+                            isSelected ? styles.filterSheetOptionTextSelected : null,
+                          ]}
+                        >
+                          {item.label}
+                        </Text>
+                        {isSelected ? (
+                          <Ionicons color={colors.text} name="checkmark-circle" size={18} />
+                        ) : null}
+                      </Pressable>
+                    );
+                  })}
+                </ScrollView>
+              </>
+            ) : null}
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
         animationType="fade"
         onRequestClose={() => setEditingTransaction(null)}
         transparent
@@ -489,80 +606,47 @@ type FilterOption = {
   label: string;
 };
 
-type FilterSelectProps = {
+type FilterChipProps = {
   iconName: IconName;
-  isOpen: boolean;
   label: string;
-  options: FilterOption[];
-  selectedId: string;
-  onToggle: () => void;
-  onSelect: (id: string) => void;
+  value: string;
+  isActive: boolean;
+  onPress: () => void;
 };
 
-function FilterSelect({
+function FilterChip({
   iconName,
-  isOpen,
   label,
-  options,
-  selectedId,
-  onToggle,
-  onSelect,
-}: FilterSelectProps) {
-  const selectedOption =
-    options.find((item) => item.id === selectedId) ?? options[0] ?? null;
-
+  value,
+  isActive,
+  onPress,
+}: FilterChipProps) {
   return (
-    <View style={styles.filterSelect}>
-      <Pressable onPress={onToggle} style={styles.filterTrigger}>
-        <View style={styles.filterTriggerMain}>
-          <View style={styles.filterIcon}>
-            <Ionicons color={colors.text} name={iconName} size={18} />
-          </View>
-          <View style={styles.filterTriggerCopy}>
-            <Text style={styles.filterLabel}>{label}</Text>
-            <Text style={styles.filterValue}>
-              {selectedOption?.label ?? 'Selecciona una opción'}
-            </Text>
-          </View>
-        </View>
+    <Pressable
+      onPress={onPress}
+      style={[styles.filterChip, isActive ? styles.filterChipActive : null]}
+    >
+      <View style={[styles.filterChipIcon, isActive ? styles.filterChipIconActive : null]}>
         <Ionicons
-          color={colors.muted}
-          name={isOpen ? 'chevron-up' : 'chevron-down'}
-          size={18}
+          color={isActive ? colors.text : colors.muted}
+          name={iconName}
+          size={16}
         />
-      </Pressable>
-
-      {isOpen ? (
-        <View style={styles.filterMenu}>
-          {options.map((item) => {
-            const isSelected = item.id === selectedId;
-
-            return (
-              <Pressable
-                key={item.id}
-                onPress={() => onSelect(item.id)}
-                style={[
-                  styles.filterOption,
-                  isSelected ? styles.filterOptionSelected : null,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.filterOptionText,
-                    isSelected ? styles.filterOptionTextSelected : null,
-                  ]}
-                >
-                  {item.label}
-                </Text>
-                {isSelected ? (
-                  <Ionicons color={colors.text} name="checkmark" size={16} />
-                ) : null}
-              </Pressable>
-            );
-          })}
-        </View>
-      ) : null}
-    </View>
+      </View>
+      <View style={styles.filterChipCopy}>
+        <Text numberOfLines={1} style={styles.filterChipLabel}>
+          {label}
+        </Text>
+        <Text numberOfLines={1} style={styles.filterChipValue}>
+          {value}
+        </Text>
+      </View>
+      <Ionicons
+        color={isActive ? colors.text : colors.muted}
+        name="chevron-down"
+        size={16}
+      />
+    </Pressable>
   );
 }
 
@@ -615,98 +699,154 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
   },
   filtersBlock: {
-    gap: 16,
+    gap: 12,
   },
   filtersHeader: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  filtersIntro: {
-    flex: 1,
-  },
-  resetFiltersButton: {
-    minHeight: 36,
-    justifyContent: 'center',
-    paddingHorizontal: 6,
-  },
-  resetText: {
-    color: colors.muted,
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  filterSelect: {
-    gap: 10,
-  },
-  filterTrigger: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 12,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 16,
-    backgroundColor: colors.background,
-    paddingHorizontal: 14,
-    paddingVertical: 14,
   },
-  filterTriggerMain: {
+  filtersHeaderCopy: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
   },
-  filterIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.surfaceAccent,
-  },
-  filterTriggerCopy: {
-    flex: 1,
-    gap: 2,
-  },
-  filterLabel: {
+  filtersEyebrow: {
     color: colors.muted,
     fontSize: 12,
     fontWeight: '700',
     textTransform: 'uppercase',
+    letterSpacing: 0.4,
   },
-  filterValue: {
+  filtersTitle: {
     color: colors.text,
     fontSize: 15,
     fontWeight: '700',
   },
-  filterMenu: {
+  resetFiltersButton: {
+    minHeight: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 999,
+    paddingHorizontal: 10,
+  },
+  resetFiltersButtonDisabled: {
+    opacity: 0.55,
+  },
+  resetText: {
+    color: colors.text,
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  resetTextDisabled: {
+    color: colors.muted,
+  },
+  filtersRail: {
+    gap: 10,
+    paddingRight: 4,
+  },
+  filterChip: {
+    minWidth: 144,
+    maxWidth: 220,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 16,
-    backgroundColor: colors.background,
-    overflow: 'hidden',
+    borderRadius: 18,
+    backgroundColor: colors.surface,
+    paddingLeft: 10,
+    paddingRight: 12,
+    paddingVertical: 10,
   },
-  filterOption: {
+  filterChipActive: {
+    borderColor: colors.accent,
+    backgroundColor: colors.surfaceAccent,
+  },
+  filterChipIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.background,
+  },
+  filterChipIconActive: {
+    backgroundColor: 'rgba(10, 132, 255, 0.18)',
+  },
+  filterChipCopy: {
+    flex: 1,
+    minWidth: 0,
+    gap: 1,
+  },
+  filterChipLabel: {
+    color: colors.muted,
+    fontSize: 11,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    flexShrink: 1,
+  },
+  filterChipValue: {
+    color: colors.text,
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  clearRailChip: {
     minHeight: 48,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 18,
+    backgroundColor: colors.background,
+    paddingHorizontal: 14,
+  },
+  clearRailChipText: {
+    color: colors.muted,
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  filterSheet: {
+    maxHeight: '72%',
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surfaceSoft,
+    paddingHorizontal: 18,
+    paddingTop: 10,
+    paddingBottom: 18,
+  },
+  filterSheetContent: {
+    gap: 10,
+    paddingTop: 16,
+    paddingBottom: 8,
+  },
+  filterSheetOption: {
+    minHeight: 52,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 12,
-    paddingHorizontal: 14,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 18,
+    backgroundColor: colors.surface,
+    paddingHorizontal: 16,
     paddingVertical: 12,
   },
-  filterOptionSelected: {
+  filterSheetOptionSelected: {
+    borderColor: colors.accent,
     backgroundColor: colors.surfaceAccent,
   },
-  filterOptionText: {
+  filterSheetOptionText: {
     flex: 1,
     color: colors.text,
     fontSize: 14,
     fontWeight: '600',
   },
-  filterOptionTextSelected: {
-    color: colors.text,
+  filterSheetOptionTextSelected: {
+    fontWeight: '700',
   },
   transactionCard: {
     borderWidth: 1,
