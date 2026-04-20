@@ -110,13 +110,18 @@ export function SalarySummarySection({
 
             {data.hasCurrentSalary && data.salaryUsd === null ? (
               <View style={styles.noteCard}>
-                <Text style={styles.noteText}>Falta el dólar oficial para calcular USD.</Text>
+                <Text style={styles.noteText}>
+                  No se pudo resolver automáticamente el dólar oficial para este período.
+                </Text>
               </View>
             ) : null}
 
             {data.hasCurrentSalary && data.inflationMonthlyBasisPoints === null ? (
               <View style={styles.noteCard}>
-                <Text style={styles.noteText}>Falta la inflación mensual para calcular la variación real.</Text>
+                <Text style={styles.noteText}>
+                  No se pudo resolver automáticamente la inflación mensual para calcular la
+                  variación real.
+                </Text>
               </View>
             ) : null}
 

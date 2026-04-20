@@ -42,7 +42,6 @@ const currencyFormatter = createCurrencyFormatter({
 });
 
 const newAccountRoute = '/accounts/new' as Href;
-const economicDataRoute = '/economic-data' as Href;
 const backupRoute = '/backup' as Href;
 const categoriesRoute = '/categories' as Href;
 const settingsAccountRoute = (id: string) =>
@@ -120,7 +119,7 @@ export default function SettingsScreen() {
             <Text style={styles.summaryEyebrow}>Configuración base</Text>
             <Text style={styles.summaryTitle}>{accountSummaryLabel}</Text>
             <Text style={styles.summaryDescription}>
-              Administra dónde guardas tu dinero, tus tarjetas y el acceso a las herramientas de carga.
+              Administra dónde guardas tu dinero, tus tarjetas y las herramientas clave de la app.
             </Text>
           </View>
           <ActionButton
@@ -274,37 +273,11 @@ export default function SettingsScreen() {
 
         <View style={styles.sectionBlock}>
           <SectionIntro
-            description="Accesos rápidos para alimentar la app y administrar tus datos base."
+            description="Accesos rápidos para administrar tu información y mantenimiento local."
             iconName="build-outline"
             title="Herramientas"
           />
           <View style={styles.linkList}>
-            <Pressable
-              onPress={() => router.push(economicDataRoute)}
-              style={styles.linkCard}
-            >
-              <View style={styles.linkHeader}>
-                <View style={styles.linkIcon}>
-                  <Ionicons
-                    color={colors.text}
-                    name="stats-chart-outline"
-                    size={18}
-                  />
-                </View>
-                <View style={styles.linkCopy}>
-                  <Text style={styles.linkTitle}>Datos económicos</Text>
-                  <Text style={styles.linkDescription}>
-                    Carga de dólar oficial e inflación mensual.
-                  </Text>
-                </View>
-                <Ionicons
-                  color={colors.muted}
-                  name="chevron-forward"
-                  size={18}
-                />
-              </View>
-            </Pressable>
-            
             <Pressable
               onPress={() => router.push(backupRoute)}
               style={styles.linkCard}
