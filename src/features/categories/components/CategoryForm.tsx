@@ -28,6 +28,7 @@ import {
   Screen,
   StateCard,
   SurfaceCard,
+  TopBarBackButton,
 } from '../../../components';
 import { useKeyboardAwareScroll } from '../../../lib/useKeyboardAwareScroll';
 import { colors } from '../../../theme';
@@ -156,18 +157,7 @@ export function CategoryForm({
     <Screen
       description={description}
       title={title}
-      topBar={onBackPress ? (
-        <View style={styles.navigationBar}>
-          <Pressable
-            accessibilityRole="button"
-            onPress={onBackPress}
-            style={styles.backButton}
-          >
-            <Ionicons color={colors.text} name="chevron-back" size={20} />
-            <Text style={styles.backButtonLabel}>{backLabel}</Text>
-          </Pressable>
-        </View>
-      ) : null}
+      topBar={onBackPress ? <TopBarBackButton label={backLabel} onPress={onBackPress} /> : null}
       topInset={Boolean(onBackPress)}
     >
       <StatusBar style="light" />
@@ -536,25 +526,6 @@ const styles = StyleSheet.create({
   },
   submitSection: {
     gap: 10,
-  },
-  navigationBar: {
-    minHeight: 32,
-    justifyContent: 'center',
-  },
-  backButton: {
-    alignSelf: 'flex-start',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginLeft: -4,
-    paddingHorizontal: 4,
-    paddingVertical: 4,
-  },
-  backButtonLabel: {
-    color: colors.text,
-    fontSize: 17,
-    fontWeight: '600',
-    letterSpacing: -0.2,
   },
   previewCard: {
     gap: 16,

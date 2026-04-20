@@ -1,4 +1,4 @@
-import { Stack } from 'expo-router';
+import { Stack, useRouter, type Href } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import {
   KeyboardAvoidingView,
@@ -14,6 +14,7 @@ import {
   Screen,
   SectionIntro,
   StateCard,
+  TopBarBackButton,
 } from '../../components';
 import {
   EconomicDataForm,
@@ -26,7 +27,10 @@ import {
 import { useAppStore } from '../../store/app.store';
 import { colors } from '../../theme';
 
+const settingsRoute = '/(tabs)/settings' as Href;
+
 export default function EconomicDataScreen() {
+  const router = useRouter();
   const {
     data,
     errorMessage,
@@ -43,13 +47,24 @@ export default function EconomicDataScreen() {
   const goToPreviousMonth = useAppStore((state) => state.goToPreviousMonth);
   const goToNextMonth = useAppStore((state) => state.goToNextMonth);
 
+  function returnToSettings() {
+    if (router.canGoBack()) {
+      router.back();
+      return;
+    }
+
+    router.replace(settingsRoute);
+  }
+
   return (
     <>
-      <Stack.Screen options={{ title: 'Datos económicos', headerTitle: '' }} />
+      <Stack.Screen options={{ headerShown: false }} />
       <Screen
         eyebrow="Indicadores locales"
         title="Datos económicos"
         description="Gestiona el dólar oficial y la inflación mensual para alimentar conversiones y análisis salariales."
+        topBar={<TopBarBackButton label="Ajustes" onPress={returnToSettings} />}
+        topInset
       >
         <StatusBar style="light" />
 

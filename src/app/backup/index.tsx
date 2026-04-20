@@ -1,4 +1,4 @@
-import { Stack } from 'expo-router';
+import { Stack, useRouter, type Href } from 'expo-router';
 import {
   Alert,
   ScrollView,
@@ -13,9 +13,12 @@ import {
   SectionIntro,
   StateCard,
   SurfaceCard,
+  TopBarBackButton,
 } from '../../components';
 import { useBackup } from '../../features/backup';
 import { colors } from '../../theme';
+
+const settingsRoute = '/(tabs)/settings' as Href;
 
 const dateTimeFormatter = new Intl.DateTimeFormat('es-AR', {
   dateStyle: 'medium',
@@ -23,6 +26,7 @@ const dateTimeFormatter = new Intl.DateTimeFormat('es-AR', {
 });
 
 export default function BackupScreen() {
+  const router = useRouter();
   const {
     clearLastRestore,
     clearPendingImport,
@@ -39,6 +43,15 @@ export default function BackupScreen() {
     restoreErrorMessage,
     restorePendingImport,
   } = useBackup();
+
+  function returnToSettings() {
+    if (router.canGoBack()) {
+      router.back();
+      return;
+    }
+
+    router.replace(settingsRoute);
+  }
 
   function handleRestorePress() {
     if (!pendingImport) {
@@ -66,11 +79,12 @@ export default function BackupScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ title: 'Respaldo', headerTitle: '' }} />
+      <Stack.Screen options={{ headerShown: false }} />
       <Screen
         eyebrow="Configuración"
         title="Respaldo"
         description="Exporta un snapshot completo de tu base local e importa respaldos válidos de Platita sin depender de la nube."
+        topBar={<TopBarBackButton label="Ajustes" onPress={returnToSettings} />}
         topInset
       >
         <ScrollView

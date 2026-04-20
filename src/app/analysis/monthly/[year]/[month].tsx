@@ -1,11 +1,8 @@
-import { Ionicons } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import {
-  Pressable,
   ScrollView,
   StyleSheet,
-  Text,
   View,
 } from 'react-native';
 
@@ -14,6 +11,7 @@ import {
   Screen,
   SectionIntro,
   StateCard,
+  TopBarBackButton,
 } from '../../../../components';
 import {
   formatDashboardPeriod,
@@ -27,7 +25,6 @@ import {
   useMonthlyAnalysis,
 } from '../../../../features/monthlyAnalysis';
 import { SalarySummarySection } from '../../../../features/salary';
-import { colors } from '../../../../theme';
 
 const dashboardRoute = '/(tabs)' as Href;
 
@@ -58,16 +55,7 @@ export default function MonthlyAnalysisScreen() {
         eyebrow="Análisis"
         title="Mes a mes"
         description="Abrí cada período sin mover el resto de la app y leé rápido cómo cerró tu flujo mensual y tu sueldo."
-        topBar={(
-          <Pressable
-            accessibilityRole="button"
-            onPress={returnToDashboard}
-            style={styles.backButton}
-          >
-            <Ionicons color={colors.text} name="chevron-back" size={20} />
-            <Text style={styles.backButtonText}>Volver</Text>
-          </Pressable>
-        )}
+        topBar={<TopBarBackButton label="Volver" onPress={returnToDashboard} />}
         topInset
       >
         <StatusBar style="light" />
@@ -142,20 +130,5 @@ const styles = StyleSheet.create({
   },
   section: {
     gap: 12,
-  },
-  backButton: {
-    alignSelf: 'flex-start',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    borderRadius: 999,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  backButtonText: {
-    color: colors.text,
-    fontSize: 14,
-    fontWeight: '600',
   },
 });

@@ -1,4 +1,3 @@
-import { Ionicons } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import {
   ActivityIndicator,
@@ -8,7 +7,7 @@ import {
   View,
 } from 'react-native';
 
-import { Screen } from '../../components';
+import { Screen, TopBarBackButton } from '../../components';
 import {
   CategoryForm,
   toCategoryFormValues,
@@ -48,16 +47,7 @@ export default function CategoryDetailScreen() {
         <Screen
           title="Editar categoría"
           description="Cargando los datos de la categoría seleccionada."
-          topBar={(
-            <Pressable
-              accessibilityRole="button"
-              onPress={returnToCategories}
-              style={styles.backButton}
-            >
-              <Ionicons color={colors.text} name="chevron-back" size={20} />
-              <Text style={styles.backButtonText}>Categorías</Text>
-            </Pressable>
-          )}
+          topBar={<TopBarBackButton label="Categorías" onPress={returnToCategories} />}
           topInset
         >
           <View style={styles.centeredCard}>
@@ -76,16 +66,7 @@ export default function CategoryDetailScreen() {
         <Screen
           title="Categoría no encontrada"
           description="No fue posible abrir la categoría seleccionada."
-          topBar={(
-            <Pressable
-              accessibilityRole="button"
-              onPress={returnToCategories}
-              style={styles.backButton}
-            >
-              <Ionicons color={colors.text} name="chevron-back" size={20} />
-              <Text style={styles.backButtonText}>Categorías</Text>
-            </Pressable>
-          )}
+          topBar={<TopBarBackButton label="Categorías" onPress={returnToCategories} />}
           topInset
         >
           <View style={styles.messageCard}>
@@ -128,21 +109,6 @@ export default function CategoryDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  backButton: {
-    alignSelf: 'flex-start',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginLeft: -4,
-    paddingHorizontal: 4,
-    paddingVertical: 4,
-  },
-  backButtonText: {
-    color: colors.text,
-    fontSize: 17,
-    fontWeight: '600',
-    letterSpacing: -0.2,
-  },
   centeredCard: {
     borderWidth: 1,
     borderColor: colors.border,

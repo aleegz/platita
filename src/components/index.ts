@@ -10,3 +10,4 @@ export {
 export { PlaceholderScreen } from './PlaceholderScreen';
 export { Screen } from './Screen';
 export { SkeletonBlock } from './Skeleton';
+export { TopBarBackButton } from './TopBarBackButton';
