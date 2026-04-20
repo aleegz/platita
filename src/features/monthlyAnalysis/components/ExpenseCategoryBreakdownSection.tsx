@@ -23,7 +23,9 @@ export function ExpenseCategoryBreakdownSection({
       <View style={styles.header}>
         <Text style={styles.eyebrow}>Categorías de gasto</Text>
         <Text style={styles.title}>En qué se fue el mes</Text>
-        <Text style={styles.description}>{formatDashboardPeriod(data.month, data.year)}</Text>
+        <View style={styles.periodPill}>
+          <Text style={styles.periodLabel}>{formatDashboardPeriod(data.month, data.year)}</Text>
+        </View>
       </View>
 
       <View style={styles.card}>
@@ -34,12 +36,9 @@ export function ExpenseCategoryBreakdownSection({
         </View>
 
         {data.expense <= 0 || data.topExpenseCategories.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyTitle}>Todavía no hay gastos para desglosar.</Text>
-            <Text style={styles.emptyDescription}>
-              Cuando aparezcan movimientos, vas a ver cuáles concentran más peso.
-            </Text>
-          </View>
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyTitle}>Todavía no hay gastos para desglosar.</Text>
+            </View>
         ) : (
           <View style={styles.list}>
             {data.topExpenseCategories.map((item, index) => {
@@ -106,15 +105,27 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   card: {
-    borderRadius: 32,
+    borderRadius: 36,
     backgroundColor: colors.surface,
-    padding: 14,
-    gap: 14,
+    padding: 16,
+    gap: 16,
     shadowColor: colors.shadow,
-    shadowOpacity: 0.16,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.14,
+    shadowRadius: 22,
+    shadowOffset: { width: 0, height: 12 },
     elevation: 5,
+  },
+  periodPill: {
+    alignSelf: 'flex-start',
+    borderRadius: 999,
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+  },
+  periodLabel: {
+    color: colors.muted,
+    fontSize: 13,
+    fontWeight: '600',
   },
   summaryRow: {
     flexDirection: 'row',
@@ -124,8 +135,8 @@ const styles = StyleSheet.create({
   summaryMetric: {
     flexGrow: 1,
     flexBasis: '47%',
-    borderRadius: 24,
-    backgroundColor: colors.surfaceSoft,
+    borderRadius: 28,
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
     paddingHorizontal: 14,
     paddingVertical: 16,
     gap: 8,
@@ -143,28 +154,23 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
   },
   emptyState: {
-    borderRadius: 26,
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderRadius: 30,
+    backgroundColor: 'rgba(255, 255, 255, 0.025)',
     paddingHorizontal: 18,
     paddingVertical: 18,
-    gap: 6,
+    gap: 4,
   },
   emptyTitle: {
     color: colors.text,
     fontSize: 15,
     fontWeight: '600',
   },
-  emptyDescription: {
-    color: colors.muted,
-    fontSize: 14,
-    lineHeight: 20,
-  },
   list: {
-    gap: 10,
+    gap: 12,
   },
   rowCard: {
-    borderRadius: 24,
-    backgroundColor: colors.surfaceSoft,
+    borderRadius: 28,
+    backgroundColor: 'rgba(255, 255, 255, 0.035)',
     paddingHorizontal: 16,
     paddingVertical: 16,
     gap: 12,
@@ -202,11 +208,11 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     height: 10,
     borderRadius: 999,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
   },
   trackFill: {
     height: '100%',
     borderRadius: 999,
-    backgroundColor: colors.accent,
+    backgroundColor: 'rgba(10, 132, 255, 0.78)',
   },
 });

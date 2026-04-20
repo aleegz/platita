@@ -68,9 +68,6 @@ export function MonthlyOverviewSection({ data }: MonthlyOverviewSectionProps) {
         <View style={styles.secondaryCard}>
           <View style={styles.secondaryHeader}>
             <Text style={styles.secondaryTitle}>Lectura rápida</Text>
-            <Text style={styles.secondaryDescription}>
-              Métricas útiles para entender cómo cerró el período.
-            </Text>
           </View>
 
           <View style={styles.metricGroup}>
@@ -184,21 +181,21 @@ const styles = StyleSheet.create({
     letterSpacing: -1,
   },
   card: {
-    borderRadius: 32,
+    borderRadius: 36,
     backgroundColor: colors.surface,
-    padding: 14,
-    gap: 14,
+    padding: 16,
+    gap: 16,
     shadowColor: colors.shadow,
-    shadowOpacity: 0.18,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 6,
+    shadowOpacity: 0.14,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 5,
   },
   heroCard: {
-    borderRadius: 28,
-    backgroundColor: colors.surfaceSoft,
+    borderRadius: 32,
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
     paddingHorizontal: 18,
-    paddingVertical: 18,
+    paddingVertical: 20,
     gap: 18,
   },
   heroTopRow: {
@@ -217,7 +214,7 @@ const styles = StyleSheet.create({
   },
   balancePill: {
     borderRadius: 999,
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     paddingHorizontal: 12,
     paddingVertical: 7,
   },
@@ -252,17 +249,17 @@ const styles = StyleSheet.create({
   primaryMetricCard: {
     flexGrow: 1,
     flexBasis: '47%',
-    borderRadius: 24,
-    backgroundColor: colors.surfaceSoft,
+    borderRadius: 28,
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
     paddingHorizontal: 14,
     paddingVertical: 16,
     gap: 8,
   },
   primaryMetricCardMuted: {
-    backgroundColor: colors.surfaceMuted,
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
   },
   primaryMetricCardAccent: {
-    backgroundColor: colors.surfaceAccent,
+    backgroundColor: 'rgba(10, 132, 255, 0.08)',
   },
   primaryMetricLabel: {
     color: colors.muted,
@@ -277,25 +274,20 @@ const styles = StyleSheet.create({
     letterSpacing: -0.4,
   },
   secondaryCard: {
-    borderRadius: 26,
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderRadius: 30,
+    backgroundColor: 'rgba(255, 255, 255, 0.025)',
     paddingHorizontal: 18,
     paddingVertical: 18,
-    gap: 16,
+    gap: 12,
   },
   secondaryHeader: {
-    gap: 4,
+    gap: 2,
   },
   secondaryTitle: {
     color: colors.text,
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '700',
     letterSpacing: -0.5,
-  },
-  secondaryDescription: {
-    color: colors.muted,
-    fontSize: 14,
-    lineHeight: 20,
   },
   metricGroup: {
     gap: 0,
@@ -305,9 +297,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     gap: 16,
-    paddingVertical: 12,
+    paddingVertical: 13,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.06)',
+    borderTopColor: 'rgba(255, 255, 255, 0.05)',
   },
   metricRowFirst: {
     borderTopWidth: 0,
