@@ -1,3 +1,4 @@
+export { MonthlyAccountDistributionSection } from './components/MonthlyAccountDistributionSection';
 export { ExpenseCategoryBreakdownSection } from './components/ExpenseCategoryBreakdownSection';
 export { MonthlyOverviewSection } from './components/MonthlyOverviewSection';
 export { useMonthlyAnalysis } from './hooks';

@@ -23,9 +23,6 @@ export function ExpenseCategoryBreakdownSection({
       <View style={styles.header}>
         <Text style={styles.eyebrow}>Categorías de gasto</Text>
         <Text style={styles.title}>En qué se fue el mes</Text>
-        <View style={styles.periodPill}>
-          <Text style={styles.periodLabel}>{formatDashboardPeriod(data.month, data.year)}</Text>
-        </View>
       </View>
 
       <View style={styles.card}>

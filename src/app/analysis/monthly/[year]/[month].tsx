@@ -20,6 +20,7 @@ import {
   createMonthlyAnalysisRoute,
   ExpenseCategoryBreakdownSection,
   getRelativePeriod,
+  MonthlyAccountDistributionSection,
   MonthlyOverviewSection,
   resolveMonthYearParams,
   useMonthlyAnalysis,
@@ -93,13 +94,14 @@ export default function MonthlyAnalysisScreen() {
             />
           ) : null}
 
-          {!isLoading && !errorMessage ? (
-            <>
-              <MonthlyOverviewSection data={data} />
-              <ExpenseCategoryBreakdownSection data={data} />
+            {!isLoading && !errorMessage ? (
+              <>
+                <MonthlyOverviewSection data={data} />
+                <MonthlyAccountDistributionSection data={data} />
+                <ExpenseCategoryBreakdownSection data={data} />
 
-              {!data.hasActivity ? (
-                <StateCard
+                {!data.hasActivity ? (
+                  <StateCard
                   align="left"
                   description="Este período todavía no tiene movimientos. Igual podés navegar mes a mes y cargar datos para empezar a leer tendencias."
                   iconName="calendar-clear-outline"

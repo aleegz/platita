@@ -1,3 +1,9 @@
+import type {
+  AccountType,
+  EntityId,
+  MoneyInCents,
+} from '../../types/domain';
+
 export type MonthlyAnalysisData = {
   month: number;
   year: number;
@@ -10,7 +16,20 @@ export type MonthlyAnalysisData = {
   expenseVsIncomePercentage: number | null;
   expenseCategoryCount: number;
   topExpenseCategories: MonthlyExpenseCategoryBreakdown[];
+  openingBalanceTotal: MoneyInCents;
+  openingPositiveBalanceBase: MoneyInCents;
+  openingAccountCount: number;
+  openingAccountsWithBalanceCount: number;
+  openingAccountSnapshots: MonthlyOpeningAccountSnapshot[];
   hasActivity: boolean;
+};
+
+export type MonthlyOpeningAccountSnapshot = {
+  id: EntityId;
+  name: string;
+  type: AccountType;
+  openingBalance: MoneyInCents;
+  distributionShare: number | null;
 };
 
 export type MonthlyExpenseCategoryBreakdown = {
@@ -36,6 +55,11 @@ export function createEmptyMonthlyAnalysisData(
     expenseVsIncomePercentage: null,
     expenseCategoryCount: 0,
     topExpenseCategories: [],
+    openingBalanceTotal: 0,
+    openingPositiveBalanceBase: 0,
+    openingAccountCount: 0,
+    openingAccountsWithBalanceCount: 0,
+    openingAccountSnapshots: [],
     hasActivity: false,
   };
 }

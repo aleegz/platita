@@ -37,7 +37,7 @@ export function MonthlyOverviewSection({ data }: MonthlyOverviewSectionProps) {
       <View style={styles.card}>
         <View style={styles.heroCard}>
           <View style={styles.heroTopRow}>
-            <Text style={styles.periodLabel}>{formatDashboardPeriod(data.month, data.year)}</Text>
+            <Text style={styles.periodLabel}>Saldo</Text>
             <View style={styles.balancePill}>
               <Text style={styles.balancePillText}>Balance del mes</Text>
             </View>
