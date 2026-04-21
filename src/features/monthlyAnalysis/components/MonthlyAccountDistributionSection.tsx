@@ -1,12 +1,10 @@
+import type { ComponentProps } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 import { StateCard } from '../../../components';
 import { getAccountTypeLabel } from '../../accounts/types';
-import {
-  formatDashboardMoney,
-  formatDashboardPercentage,
-  formatDashboardPeriod,
-} from '../../dashboard';
+import { formatDashboardMoney, formatDashboardPercentage } from '../../dashboard';
 import { colors } from '../../../theme';
 
 import type { MonthlyAnalysisData, MonthlyOpeningAccountSnapshot } from '../types';
@@ -14,6 +12,8 @@ import type { MonthlyAnalysisData, MonthlyOpeningAccountSnapshot } from '../type
 type MonthlyAccountDistributionSectionProps = {
   data: MonthlyAnalysisData;
 };
+
+type IconName = ComponentProps<typeof Ionicons>['name'];
 
 export function MonthlyAccountDistributionSection({
   data,
@@ -42,11 +42,29 @@ export function MonthlyAccountDistributionSection({
 
       <View style={styles.card}>
         <View style={styles.heroCard}>
-          <Text style={styles.heroLabel}>Saldo total al abrir</Text>
+          <View style={styles.heroLabelRow}>
+            <View style={styles.heroLabelIcon}>
+              <Ionicons color={colors.text} name="wallet-outline" size={14} />
+            </View>
+            <Text style={styles.heroLabel}>Saldo total al abrir</Text>
+          </View>
           <Text style={[styles.totalValue, totalTone]}>
             {formatDashboardMoney(data.openingBalanceTotal)}
           </Text>
           <Text style={styles.heroNarrative}>{getOpeningNarrative(data)}</Text>
+        </View>
+
+        <View style={styles.summaryRow}>
+          <SummaryMetric
+            iconName="layers-outline"
+            label="Cuentas activas"
+            value={String(data.openingAccountCount)}
+          />
+          <SummaryMetric
+            iconName="wallet-outline"
+            label="Con saldo"
+            value={String(data.openingAccountsWithBalanceCount)}
+          />
         </View>
 
         {data.openingAccountCount === 0 ? (
@@ -58,7 +76,6 @@ export function MonthlyAccountDistributionSection({
           />
         ) : (
           <>
-
             <View style={styles.list}>
               {visibleAccounts.map((account) => (
                 <AccountRow key={account.id} account={account} />
@@ -79,10 +96,21 @@ export function MonthlyAccountDistributionSection({
   );
 }
 
-function SummaryMetric({ label, value }: { label: string; value: string }) {
+function SummaryMetric({
+  iconName,
+  label,
+  value,
+}: {
+  iconName: IconName;
+  label: string;
+  value: string;
+}) {
   return (
     <View style={styles.summaryMetric}>
-      <Text style={styles.summaryLabel}>{label}</Text>
+      <View style={styles.summaryLabelRow}>
+        <Ionicons color={colors.muted} name={iconName} size={14} />
+        <Text style={styles.summaryLabel}>{label}</Text>
+      </View>
       <Text style={styles.summaryValue}>{value}</Text>
     </View>
   );
@@ -102,11 +130,16 @@ function AccountRow({ account }: { account: MonthlyOpeningAccountSnapshot }) {
   return (
     <View style={styles.rowCard}>
       <View style={styles.rowHeader}>
-        <View style={styles.rowCopy}>
-          <Text style={styles.accountName}>{account.name}</Text>
-          <Text style={styles.accountMeta}>
-            {getAccountTypeLabel(account.type)} · {getAccountShareLabel(account)}
-          </Text>
+        <View style={styles.rowIdentity}>
+          <View style={styles.accountTypeIcon}>
+            <Ionicons color={colors.text} name={getAccountTypeIconName(account.type)} size={16} />
+          </View>
+          <View style={styles.rowCopy}>
+            <Text style={styles.accountName}>{account.name}</Text>
+            <Text style={styles.accountMeta}>
+              {getAccountTypeLabel(account.type)} · {getAccountShareLabel(account)}
+            </Text>
+          </View>
         </View>
 
         <Text style={[styles.accountAmount, amountTone]}>
@@ -155,6 +188,23 @@ function getAccountShareLabel(account: MonthlyOpeningAccountSnapshot) {
   return 'sin saldo al abrir';
 }
 
+function getAccountTypeIconName(type: MonthlyOpeningAccountSnapshot['type']): IconName {
+  switch (type) {
+    case 'cash':
+      return 'cash-outline';
+    case 'bank':
+      return 'business-outline';
+    case 'wallet':
+      return 'phone-portrait-outline';
+    case 'investment':
+      return 'trending-up-outline';
+    case 'credit':
+      return 'card-outline';
+    default:
+      return 'wallet-outline';
+  }
+}
+
 const styles = StyleSheet.create({
   section: {
     gap: 16,
@@ -171,9 +221,9 @@ const styles = StyleSheet.create({
   },
   title: {
     color: colors.text,
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: '800',
-    letterSpacing: -0.9,
+    letterSpacing: -0.8,
   },
   description: {
     color: colors.muted,
@@ -198,16 +248,29 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
     gap: 8,
   },
+  heroLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  heroLabelIcon: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   heroLabel: {
     color: colors.muted,
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
   },
   totalValue: {
     color: colors.text,
-    fontSize: 38,
+    fontSize: 34,
     fontWeight: '800',
-    letterSpacing: -1.2,
+    letterSpacing: -1,
   },
   totalValuePositive: {
     color: colors.text,
@@ -217,8 +280,8 @@ const styles = StyleSheet.create({
   },
   heroNarrative: {
     color: colors.muted,
-    fontSize: 15,
-    lineHeight: 22,
+    fontSize: 14,
+    lineHeight: 20,
   },
   summaryRow: {
     flexDirection: 'row',
@@ -234,6 +297,11 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     gap: 8,
   },
+  summaryLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
   summaryLabel: {
     color: colors.muted,
     fontSize: 12,
@@ -242,7 +310,7 @@ const styles = StyleSheet.create({
   },
   summaryValue: {
     color: colors.text,
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '700',
     letterSpacing: -0.4,
   },
@@ -262,13 +330,28 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     gap: 12,
   },
+  rowIdentity: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  accountTypeIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 1,
+  },
   rowCopy: {
     flex: 1,
     gap: 4,
   },
   accountName: {
     color: colors.text,
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
     letterSpacing: -0.2,
   },
@@ -280,7 +363,7 @@ const styles = StyleSheet.create({
   accountAmount: {
     flexShrink: 1,
     color: colors.text,
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '700',
     textAlign: 'right',
     letterSpacing: -0.2,

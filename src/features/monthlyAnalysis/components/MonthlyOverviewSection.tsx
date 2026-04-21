@@ -1,10 +1,8 @@
+import type { ComponentProps } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
-import {
-  formatDashboardMoney,
-  formatDashboardPercentage,
-  formatDashboardPeriod,
-} from '../../dashboard';
+import { formatDashboardMoney, formatDashboardPercentage } from '../../dashboard';
 import { colors } from '../../../theme';
 
 import type { MonthlyAnalysisData } from '../types';
@@ -12,6 +10,8 @@ import type { MonthlyAnalysisData } from '../types';
 type MonthlyOverviewSectionProps = {
   data: MonthlyAnalysisData;
 };
+
+type IconName = ComponentProps<typeof Ionicons>['name'];
 
 export function MonthlyOverviewSection({ data }: MonthlyOverviewSectionProps) {
   const positiveFlow = data.income + data.yield;
@@ -37,8 +37,14 @@ export function MonthlyOverviewSection({ data }: MonthlyOverviewSectionProps) {
       <View style={styles.card}>
         <View style={styles.heroCard}>
           <View style={styles.heroTopRow}>
-            <Text style={styles.periodLabel}>Saldo</Text>
+            <View style={styles.heroLabelRow}>
+              <View style={styles.heroLabelIcon}>
+                <Ionicons color={colors.text} name="analytics-outline" size={14} />
+              </View>
+              <Text style={styles.periodLabel}>Saldo</Text>
+            </View>
             <View style={styles.balancePill}>
+              <Ionicons color={colors.muted} name="calendar-outline" size={13} />
               <Text style={styles.balancePillText}>Balance del mes</Text>
             </View>
           </View>
@@ -52,13 +58,19 @@ export function MonthlyOverviewSection({ data }: MonthlyOverviewSectionProps) {
         </View>
 
         <View style={styles.primaryMetricsRow}>
-          <PrimaryMetricCard label="Ingresos" value={formatDashboardMoney(data.income)} />
           <PrimaryMetricCard
+            iconName="arrow-down-circle-outline"
+            label="Ingresos"
+            value={formatDashboardMoney(data.income)}
+          />
+          <PrimaryMetricCard
+            iconName="arrow-up-circle-outline"
             label="Gastos"
             tone="muted"
             value={formatDashboardMoney(data.expense)}
           />
           <PrimaryMetricCard
+            iconName="sparkles-outline"
             label="Rendimientos"
             tone="accent"
             value={data.yield > 0 ? formatDashboardMoney(data.yield) : 'Sin rendimientos'}
@@ -72,22 +84,26 @@ export function MonthlyOverviewSection({ data }: MonthlyOverviewSectionProps) {
 
           <View style={styles.metricGroup}>
             <MetricRow
+              iconName="pie-chart-outline"
               isFirst
               detail={data.savingsRate !== null ? 'del flujo positivo' : 'sin base suficiente'}
               label="Tasa de ahorro"
               value={formatDashboardPercentage(data.savingsRate)}
             />
             <MetricRow
+              iconName="wallet-outline"
               detail={data.savingsAmount !== null ? 'saldo a favor' : 'sin excedente'}
               label="Ahorro"
               value={savingsValue}
             />
             <MetricRow
+              iconName="receipt-outline"
               detail={positiveFlow > 0 ? 'sobre ingresos + rendimientos' : 'sin referencia'}
               label="Peso del gasto"
               value={expenseShare}
             />
             <MetricRow
+              iconName="pricetag-outline"
               detail={largestExpenseCategory ? 'categoría con más peso' : 'sin categoría dominante'}
               label="Categoría principal"
               value={largestExpenseCategory?.name ?? 'Sin datos'}
@@ -100,10 +116,12 @@ export function MonthlyOverviewSection({ data }: MonthlyOverviewSectionProps) {
 }
 
 function PrimaryMetricCard({
+  iconName,
   label,
   tone = 'default',
   value,
 }: {
+  iconName: IconName;
   label: string;
   tone?: 'default' | 'muted' | 'accent';
   value: string;
@@ -116,7 +134,12 @@ function PrimaryMetricCard({
         tone === 'accent' ? styles.primaryMetricCardAccent : null,
       ]}
     >
-      <Text style={styles.primaryMetricLabel}>{label}</Text>
+      <View style={styles.primaryMetricHeader}>
+        <View style={styles.primaryMetricIcon}>
+          <Ionicons color={colors.text} name={iconName} size={16} />
+        </View>
+        <Text style={styles.primaryMetricLabel}>{label}</Text>
+      </View>
       <Text style={styles.primaryMetricValue}>{value}</Text>
     </View>
   );
@@ -124,11 +147,13 @@ function PrimaryMetricCard({
 
 function MetricRow({
   detail,
+  iconName,
   isFirst = false,
   label,
   value,
 }: {
   detail?: string;
+  iconName: IconName;
   isFirst?: boolean;
   label: string;
   value: string;
@@ -136,7 +161,12 @@ function MetricRow({
   return (
     <View style={[styles.metricRow, isFirst ? styles.metricRowFirst : null]}>
       <View style={styles.metricCopy}>
-        <Text style={styles.metricLabel}>{label}</Text>
+        <View style={styles.metricLabelRow}>
+          <View style={styles.metricIcon}>
+            <Ionicons color={colors.muted} name={iconName} size={15} />
+          </View>
+          <Text style={styles.metricLabel}>{label}</Text>
+        </View>
         {detail ? <Text style={styles.metricDetail}>{detail}</Text> : null}
       </View>
       <Text style={styles.metricValue}>{value}</Text>
@@ -176,9 +206,9 @@ const styles = StyleSheet.create({
   },
   title: {
     color: colors.text,
-    fontSize: 30,
+    fontSize: 26,
     fontWeight: '800',
-    letterSpacing: -1,
+    letterSpacing: -0.8,
   },
   card: {
     borderRadius: 36,
@@ -204,15 +234,31 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
   },
+  heroLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  heroLabelIcon: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   summaryBlock: {
     gap: 8,
   },
   periodLabel: {
     color: colors.muted,
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '600',
   },
   balancePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     borderRadius: 999,
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
     paddingHorizontal: 12,
@@ -226,9 +272,9 @@ const styles = StyleSheet.create({
   },
   balanceValue: {
     color: colors.text,
-    fontSize: 42,
+    fontSize: 36,
     fontWeight: '800',
-    letterSpacing: -1.4,
+    letterSpacing: -1.1,
   },
   balanceValuePositive: {
     color: colors.text,
@@ -238,8 +284,8 @@ const styles = StyleSheet.create({
   },
   balanceNarrative: {
     color: colors.muted,
-    fontSize: 15,
-    lineHeight: 22,
+    fontSize: 14,
+    lineHeight: 20,
   },
   primaryMetricsRow: {
     flexDirection: 'row',
@@ -255,6 +301,19 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     gap: 8,
   },
+  primaryMetricHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  primaryMetricIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   primaryMetricCardMuted: {
     backgroundColor: 'rgba(255, 255, 255, 0.03)',
   },
@@ -269,7 +328,7 @@ const styles = StyleSheet.create({
   },
   primaryMetricValue: {
     color: colors.text,
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: '700',
     letterSpacing: -0.4,
   },
@@ -285,9 +344,9 @@ const styles = StyleSheet.create({
   },
   secondaryTitle: {
     color: colors.text,
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: '700',
-    letterSpacing: -0.5,
+    letterSpacing: -0.3,
   },
   metricGroup: {
     gap: 0,
@@ -309,9 +368,22 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 3,
   },
+  metricLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  metricIcon: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   metricLabel: {
     color: colors.text,
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '600',
   },
   metricDetail: {
@@ -322,7 +394,7 @@ const styles = StyleSheet.create({
   metricValue: {
     flexShrink: 1,
     color: colors.text,
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '700',
     letterSpacing: -0.3,
     textAlign: 'right',

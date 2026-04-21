@@ -1,10 +1,8 @@
+import type { ComponentProps } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
-import {
-  formatDashboardMoney,
-  formatDashboardPercentage,
-  formatDashboardPeriod,
-} from '../../dashboard';
+import { formatDashboardMoney, formatDashboardPercentage } from '../../dashboard';
 import { colors } from '../../../theme';
 
 import type { MonthlyAnalysisData } from '../types';
@@ -12,6 +10,8 @@ import type { MonthlyAnalysisData } from '../types';
 type ExpenseCategoryBreakdownSectionProps = {
   data: MonthlyAnalysisData;
 };
+
+type IconName = ComponentProps<typeof Ionicons>['name'];
 
 export function ExpenseCategoryBreakdownSection({
   data,
@@ -27,15 +27,27 @@ export function ExpenseCategoryBreakdownSection({
 
       <View style={styles.card}>
         <View style={styles.summaryRow}>
-          <SummaryMetric label="Gasto total" value={formatDashboardMoney(data.expense)} />
-          <SummaryMetric label="Categorías" value={String(data.expenseCategoryCount)} />
-          <SummaryMetric label="Cobertura top" value={formatDashboardPercentage(listedShare * 100)} />
+          <SummaryMetric
+            iconName="receipt-outline"
+            label="Gasto total"
+            value={formatDashboardMoney(data.expense)}
+          />
+          <SummaryMetric
+            iconName="layers-outline"
+            label="Categorías"
+            value={String(data.expenseCategoryCount)}
+          />
+          <SummaryMetric
+            iconName="pie-chart-outline"
+            label="Cobertura top"
+            value={formatDashboardPercentage(listedShare * 100)}
+          />
         </View>
 
         {data.expense <= 0 || data.topExpenseCategories.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Text style={styles.emptyTitle}>Todavía no hay gastos para desglosar.</Text>
-            </View>
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyTitle}>Todavía no hay gastos para desglosar.</Text>
+          </View>
         ) : (
           <View style={styles.list}>
             {data.topExpenseCategories.map((item, index) => {
@@ -67,10 +79,21 @@ export function ExpenseCategoryBreakdownSection({
   );
 }
 
-function SummaryMetric({ label, value }: { label: string; value: string }) {
+function SummaryMetric({
+  iconName,
+  label,
+  value,
+}: {
+  iconName: IconName;
+  label: string;
+  value: string;
+}) {
   return (
     <View style={styles.summaryMetric}>
-      <Text style={styles.summaryLabel}>{label}</Text>
+      <View style={styles.summaryLabelRow}>
+        <Ionicons color={colors.muted} name={iconName} size={14} />
+        <Text style={styles.summaryLabel}>{label}</Text>
+      </View>
       <Text style={styles.summaryValue}>{value}</Text>
     </View>
   );
@@ -92,9 +115,9 @@ const styles = StyleSheet.create({
   },
   title: {
     color: colors.text,
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: '800',
-    letterSpacing: -0.9,
+    letterSpacing: -0.8,
   },
   description: {
     color: colors.muted,
@@ -138,6 +161,11 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     gap: 8,
   },
+  summaryLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
   summaryLabel: {
     color: colors.muted,
     fontSize: 12,
@@ -146,7 +174,7 @@ const styles = StyleSheet.create({
   },
   summaryValue: {
     color: colors.text,
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '700',
     letterSpacing: -0.5,
   },
@@ -184,7 +212,7 @@ const styles = StyleSheet.create({
   },
   categoryName: {
     color: colors.text,
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
     letterSpacing: -0.2,
   },
@@ -196,7 +224,7 @@ const styles = StyleSheet.create({
   categoryAmount: {
     flexShrink: 1,
     color: colors.text,
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '700',
     textAlign: 'right',
     letterSpacing: -0.2,

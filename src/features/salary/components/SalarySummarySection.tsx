@@ -1,9 +1,11 @@
+import type { ComponentProps } from 'react';
 import {
   ActivityIndicator,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 import { colors } from '../../../theme';
 import { useSalaryAnalysisForPeriod } from '../hooks';
@@ -12,6 +14,8 @@ import {
   formatSalaryMoneyUsd,
   formatSalaryPercentage,
 } from '../types';
+
+type IconName = ComponentProps<typeof Ionicons>['name'];
 
 type SalarySummarySectionProps = {
   month: number;
@@ -52,6 +56,7 @@ export function SalarySummarySection({
         <View style={styles.card}>
           <View style={styles.summaryGrid}>
             <SalaryMetricCard
+              iconName="cash-outline"
               label="Sueldo en ARS"
               tone={data.hasCurrentSalary ? 'positive' : 'default'}
               value={
@@ -61,6 +66,7 @@ export function SalarySummarySection({
               }
             />
             <SalaryMetricCard
+              iconName="logo-usd"
               label="Sueldo en USD"
               tone={data.salaryUsd !== null ? 'positive' : 'default'}
               value={
@@ -70,6 +76,7 @@ export function SalarySummarySection({
               }
             />
             <SalaryMetricCard
+              iconName="trending-up-outline"
               label="Variación nominal"
               tone={
                 data.nominalVariationPercentage === null
@@ -81,6 +88,7 @@ export function SalarySummarySection({
               value={formatSalaryPercentage(data.nominalVariationPercentage)}
             />
             <SalaryMetricCard
+              iconName="pulse-outline"
               label="Variación real"
               tone={
                 data.realVariationPercentage === null
@@ -96,6 +104,9 @@ export function SalarySummarySection({
           <View style={styles.notesGroup}>
             {!data.salaryCategoryFound ? (
               <View style={styles.noteCard}>
+                <View style={styles.noteIcon}>
+                  <Ionicons color={colors.warning} name="alert-circle-outline" size={16} />
+                </View>
                 <Text style={styles.noteText}>
                   Falta una categoría activa llamada Sueldo para usar este análisis.
                 </Text>
@@ -104,12 +115,18 @@ export function SalarySummarySection({
 
             {data.salaryCategoryFound && !data.hasCurrentSalary ? (
               <View style={styles.noteCard}>
+                <View style={styles.noteIcon}>
+                  <Ionicons color={colors.muted} name="information-circle-outline" size={16} />
+                </View>
                 <Text style={styles.noteText}>No hay movimientos de sueldo en este período.</Text>
               </View>
             ) : null}
 
             {data.hasCurrentSalary && data.salaryUsd === null ? (
               <View style={styles.noteCard}>
+                <View style={styles.noteIcon}>
+                  <Ionicons color={colors.muted} name="information-circle-outline" size={16} />
+                </View>
                 <Text style={styles.noteText}>
                   No se pudo resolver automáticamente el dólar oficial para este período.
                 </Text>
@@ -118,6 +135,9 @@ export function SalarySummarySection({
 
             {data.hasCurrentSalary && data.inflationMonthlyBasisPoints === null ? (
               <View style={styles.noteCard}>
+                <View style={styles.noteIcon}>
+                  <Ionicons color={colors.muted} name="information-circle-outline" size={16} />
+                </View>
                 <Text style={styles.noteText}>
                   No se pudo resolver automáticamente la inflación mensual para calcular la
                   variación real.
@@ -127,6 +147,9 @@ export function SalarySummarySection({
 
             {data.hasCurrentSalary && !data.hasPreviousSalary ? (
               <View style={styles.noteCard}>
+                <View style={styles.noteIcon}>
+                  <Ionicons color={colors.muted} name="time-outline" size={16} />
+                </View>
                 <Text style={styles.noteText}>Todavía no hay sueldo previo para comparar.</Text>
               </View>
             ) : null}
@@ -138,10 +161,12 @@ export function SalarySummarySection({
 }
 
 function SalaryMetricCard({
+  iconName,
   label,
   tone = 'default',
   value,
 }: {
+  iconName: IconName;
   label: string;
   tone?: 'default' | 'positive' | 'negative';
   value: string;
@@ -154,7 +179,12 @@ function SalaryMetricCard({
         tone === 'negative' ? styles.metricCardNegative : null,
       ]}
     >
-      <Text style={styles.metricLabel}>{label}</Text>
+      <View style={styles.metricHeader}>
+        <View style={styles.metricIcon}>
+          <Ionicons color={colors.text} name={iconName} size={16} />
+        </View>
+        <Text style={styles.metricLabel}>{label}</Text>
+      </View>
       <Text
         style={[
           styles.metricValue,
@@ -187,9 +217,9 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     color: colors.text,
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: '800',
-    letterSpacing: -0.9,
+    letterSpacing: -0.8,
   },
   card: {
     borderRadius: 36,
@@ -216,6 +246,19 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     gap: 8,
   },
+  metricHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  metricIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   metricCardPositive: {
     backgroundColor: 'rgba(48, 209, 88, 0.08)',
   },
@@ -230,7 +273,7 @@ const styles = StyleSheet.create({
   },
   metricValue: {
     color: colors.text,
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '700',
     letterSpacing: -0.5,
   },
@@ -274,12 +317,25 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   noteCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
     borderRadius: 24,
     backgroundColor: 'rgba(255, 255, 255, 0.03)',
     paddingHorizontal: 16,
     paddingVertical: 14,
   },
+  noteIcon: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 1,
+  },
   noteText: {
+    flex: 1,
     color: colors.muted,
     fontSize: 14,
     lineHeight: 20,
