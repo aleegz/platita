@@ -7,6 +7,7 @@ import {
   getUserFacingMessage,
 } from '../../lib/errors';
 import { animateNextLayout } from '../../lib/motion';
+import { useDomainInvalidationStore } from '../../store/domain-invalidation.store';
 import type { Account } from '../../types/domain';
 import { createAccountService } from './service';
 import type { SaveAccountInput } from './types';
@@ -131,6 +132,9 @@ export function useAccount(accountId?: string): AccountState {
 
 export function useAccountMutations(): AccountMutations {
   const database = useDatabase();
+  const invalidateTransactionReferences = useDomainInvalidationStore(
+    (state) => state.invalidateTransactionReferences
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -139,7 +143,11 @@ export function useAccountMutations(): AccountMutations {
     setErrorMessage(null);
 
     try {
-      return await createAccountService(database).createAccount(input);
+      const account = await createAccountService(database).createAccount(input);
+
+      invalidateTransactionReferences();
+
+      return account;
     } catch (error) {
       console.error(error);
       setErrorMessage(getUserFacingMessage(error, 'No se pudo guardar la cuenta.'));
@@ -161,6 +169,8 @@ export function useAccountMutations(): AccountMutations {
           'La cuenta ya no existe o no está disponible.'
         );
       }
+
+      invalidateTransactionReferences();
 
       return account;
     } catch (error) {

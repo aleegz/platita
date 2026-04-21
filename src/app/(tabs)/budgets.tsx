@@ -31,8 +31,7 @@ import {
 } from '../../features/budgets';
 
 export default function BudgetsScreen() {
-  const { data, errorMessage, isLoading, refresh, selectedMonth, selectedYear } =
-    useBudgets();
+  const { data, errorMessage, isLoading, selectedMonth, selectedYear } = useBudgets();
   const { errorMessage: submitErrorMessage, isSubmitting, upsertBudget } =
     useBudgetMutations();
   const goToPreviousMonth = useAppStore((state) => state.goToPreviousMonth);
@@ -232,7 +231,6 @@ export default function BudgetsScreen() {
                       year: selectedYear,
                       budgetAmount: values.budgetAmount,
                     });
-                    await refresh();
                     setEditingCategoryId(null);
                   }}
                 />

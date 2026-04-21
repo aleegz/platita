@@ -7,6 +7,7 @@ import {
   getUserFacingMessage,
 } from '../../lib/errors';
 import { animateNextLayout } from '../../lib/motion';
+import { useDomainInvalidationStore } from '../../store/domain-invalidation.store';
 import type { Category } from '../../types/domain';
 
 import { createCategoryService } from './service';
@@ -134,6 +135,9 @@ export function useCategory(categoryId?: string): CategoryState {
 
 export function useCategoryMutations(): CategoryMutations {
   const database = useDatabase();
+  const invalidateTransactionReferences = useDomainInvalidationStore(
+    (state) => state.invalidateTransactionReferences
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -142,7 +146,11 @@ export function useCategoryMutations(): CategoryMutations {
     setErrorMessage(null);
 
     try {
-      return await createCategoryService(database).createCategory(input);
+      const category = await createCategoryService(database).createCategory(input);
+
+      invalidateTransactionReferences();
+
+      return category;
     } catch (error) {
       console.error(error);
       setErrorMessage(
@@ -166,6 +174,8 @@ export function useCategoryMutations(): CategoryMutations {
           'La categoría ya no existe o no está disponible.'
         );
       }
+
+      invalidateTransactionReferences();
 
       return category;
     } catch (error) {

@@ -10,9 +10,9 @@ const primaryActionColorActive = '#3B9BFF';
 export default function TabsLayout() {
   return (
     <Tabs
-      detachInactiveScreens={false}
+      detachInactiveScreens
       screenOptions={{
-        freezeOnBlur: false,
+        freezeOnBlur: true,
         headerShown: false,
         headerTitleAlign: 'center',
         headerShadowVisible: false,

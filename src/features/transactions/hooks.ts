@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { useIsFocused } from '@react-navigation/native';
 
 import { useDatabase } from '../../database/client/provider';
 import {
@@ -8,6 +7,10 @@ import {
 } from '../../lib/errors';
 import { animateNextLayout } from '../../lib/motion';
 import { useAppStore, appStoreSelectors } from '../../store/app.store';
+import {
+  domainInvalidationStoreSelectors,
+  useDomainInvalidationStore,
+} from '../../store/domain-invalidation.store';
 import {
   useFiltersStore,
   filtersStoreSelectors,
@@ -47,7 +50,9 @@ type TransactionMutations = {
 
 export function useTransactionReferenceData(): TransactionReferenceState {
   const database = useDatabase();
-  const isFocused = useIsFocused();
+  const referenceDataVersion = useDomainInvalidationStore(
+    domainInvalidationStoreSelectors.transactionReferencesVersion
+  );
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -73,12 +78,8 @@ export function useTransactionReferenceData(): TransactionReferenceState {
   }
 
   useEffect(() => {
-    if (!isFocused) {
-      return;
-    }
-
     void refresh();
-  }, [database, isFocused]);
+  }, [database, referenceDataVersion]);
 
   return {
     accounts,
@@ -91,9 +92,14 @@ export function useTransactionReferenceData(): TransactionReferenceState {
 
 export function useTransactions(): TransactionsState {
   const database = useDatabase();
-  const isFocused = useIsFocused();
   const selectedMonth = useAppStore(appStoreSelectors.selectedMonth);
   const selectedYear = useAppStore(appStoreSelectors.selectedYear);
+  const transactionsVersion = useDomainInvalidationStore(
+    domainInvalidationStoreSelectors.transactionsVersion
+  );
+  const referenceDataVersion = useDomainInvalidationStore(
+    domainInvalidationStoreSelectors.transactionReferencesVersion
+  );
   const transactionFilters = useFiltersStore(
     filtersStoreSelectors.transactionFilters
   );
@@ -136,14 +142,11 @@ export function useTransactions(): TransactionsState {
   }
 
   useEffect(() => {
-    if (!isFocused) {
-      return;
-    }
-
     void refresh();
   }, [
     database,
-    isFocused,
+    transactionsVersion,
+    referenceDataVersion,
     selectedMonth,
     selectedYear,
     transactionFilters.type,
@@ -166,6 +169,12 @@ export function useTransactions(): TransactionsState {
 
 export function useTransactionMutations(): TransactionMutations {
   const database = useDatabase();
+  const invalidateTransactions = useDomainInvalidationStore(
+    (state) => state.invalidateTransactions
+  );
+  const invalidateBudgets = useDomainInvalidationStore(
+    (state) => state.invalidateBudgets
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -174,7 +183,12 @@ export function useTransactionMutations(): TransactionMutations {
     setErrorMessage(null);
 
     try {
-      return await createTransactionService(database).createTransaction(input);
+      const transaction = await createTransactionService(database).createTransaction(input);
+
+      invalidateTransactions();
+      invalidateBudgets();
+
+      return transaction;
     } catch (error) {
       console.error(error);
       setErrorMessage(
@@ -192,6 +206,8 @@ export function useTransactionMutations(): TransactionMutations {
 
     try {
       await createTransactionService(database).deleteTransaction(id);
+      invalidateTransactions();
+      invalidateBudgets();
     } catch (error) {
       console.error(error);
       setErrorMessage(
@@ -218,6 +234,9 @@ export function useTransactionMutations(): TransactionMutations {
           'El movimiento ya no existe o no está disponible.'
         );
       }
+
+      invalidateTransactions();
+      invalidateBudgets();
 
       return transaction;
     } catch (error) {

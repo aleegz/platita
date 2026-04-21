@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react';
-import { useIsFocused } from '@react-navigation/native';
 
 import { useDatabase } from '../../database/client/provider';
 import { getUserFacingMessage } from '../../lib/errors';
 import { animateNextLayout } from '../../lib/motion';
 import { appStoreSelectors, useAppStore } from '../../store/app.store';
+import {
+  domainInvalidationStoreSelectors,
+  useDomainInvalidationStore,
+} from '../../store/domain-invalidation.store';
 import type { MonthlyBudget } from '../../types/domain';
 
 import { createBudgetService } from './service';
@@ -27,9 +30,11 @@ type BudgetMutations = {
 
 export function useBudgets(): BudgetsState {
   const database = useDatabase();
-  const isFocused = useIsFocused();
   const selectedMonth = useAppStore(appStoreSelectors.selectedMonth);
   const selectedYear = useAppStore(appStoreSelectors.selectedYear);
+  const budgetsVersion = useDomainInvalidationStore(
+    domainInvalidationStoreSelectors.budgetsVersion
+  );
   const [data, setData] = useState<BudgetsData>(() =>
     createEmptyBudgetsData(selectedMonth, selectedYear)
   );
@@ -59,12 +64,8 @@ export function useBudgets(): BudgetsState {
   }
 
   useEffect(() => {
-    if (!isFocused) {
-      return;
-    }
-
     void refresh();
-  }, [database, isFocused, selectedMonth, selectedYear]);
+  }, [database, budgetsVersion, selectedMonth, selectedYear]);
 
   return {
     data,
@@ -78,6 +79,9 @@ export function useBudgets(): BudgetsState {
 
 export function useBudgetMutations(): BudgetMutations {
   const database = useDatabase();
+  const invalidateBudgets = useDomainInvalidationStore(
+    (state) => state.invalidateBudgets
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -86,7 +90,11 @@ export function useBudgetMutations(): BudgetMutations {
     setErrorMessage(null);
 
     try {
-      return await createBudgetService(database).upsertBudget(input);
+      const budget = await createBudgetService(database).upsertBudget(input);
+
+      invalidateBudgets();
+
+      return budget;
     } catch (error) {
       console.error(error);
       setErrorMessage(

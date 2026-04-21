@@ -1,9 +1,10 @@
 import type { ComponentProps } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
-import { useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  FlatList,
   Modal,
   Pressable,
   ScrollView,
@@ -45,7 +46,6 @@ export default function MovementsScreen() {
     categories,
     errorMessage,
     isLoading,
-    refresh,
     selectedMonth,
     selectedYear,
     transactionFilters,
@@ -76,36 +76,53 @@ export default function MovementsScreen() {
   const [openFilter, setOpenFilter] = useState<'type' | 'account' | 'category' | null>(
     null
   );
-  const accountNameById = new Map(accounts.map((account) => [account.id, account.name]));
-  const categoryNameById = new Map(
-    categories.map((category) => [category.id, category.name])
+  const accountNameById = useMemo(
+    () => new Map(accounts.map((account) => [account.id, account.name])),
+    [accounts]
   );
-  const filteredCategories = categories.filter((category) =>
-    transactionFilters.type && transactionFilters.type !== 'transfer'
-      ? category.type === transactionFilters.type
-      : true
+  const categoryNameById = useMemo(
+    () => new Map(categories.map((category) => [category.id, category.name])),
+    [categories]
   );
-  const typeOptions = [
-    { id: 'all', label: 'Todos' },
-    ...transactionTypeOptions.map((option) => ({
-      id: option.value,
-      label: option.label,
-    })),
-  ];
-  const accountOptions = [
-    { id: 'all', label: 'Todas' },
-    ...accounts.map((account) => ({
-      id: account.id,
-      label: account.name,
-    })),
-  ];
-  const categoryOptions = [
-    { id: 'all', label: 'Todas' },
-    ...filteredCategories.map((category) => ({
-      id: category.id,
-      label: category.name,
-    })),
-  ];
+  const filteredCategories = useMemo(
+    () =>
+      categories.filter((category) =>
+        transactionFilters.type && transactionFilters.type !== 'transfer'
+          ? category.type === transactionFilters.type
+          : true
+      ),
+    [categories, transactionFilters.type]
+  );
+  const typeOptions = useMemo(
+    () => [
+      { id: 'all', label: 'Todos' },
+      ...transactionTypeOptions.map((option) => ({
+        id: option.value,
+        label: option.label,
+      })),
+    ],
+    []
+  );
+  const accountOptions = useMemo(
+    () => [
+      { id: 'all', label: 'Todas' },
+      ...accounts.map((account) => ({
+        id: account.id,
+        label: account.name,
+      })),
+    ],
+    [accounts]
+  );
+  const categoryOptions = useMemo(
+    () => [
+      { id: 'all', label: 'Todas' },
+      ...filteredCategories.map((category) => ({
+        id: category.id,
+        label: category.name,
+      })),
+    ],
+    [filteredCategories]
+  );
   const selectedTypeLabel =
     typeOptions.find((option) => option.id === (transactionFilters.type ?? 'all'))?.label ??
     'Todos';
@@ -119,6 +136,7 @@ export default function MovementsScreen() {
     transactionFilters.type !== null ||
     transactionFilters.accountId !== null ||
     transactionFilters.categoryId !== null;
+  const hasVisibleTransactions = !isLoading && !errorMessage && transactions.length > 0;
   const activeFilterConfig =
     openFilter === 'type'
       ? {
@@ -181,7 +199,6 @@ export default function MovementsScreen() {
     try {
       await deleteTransaction(transactionId);
       setTransactionPendingDelete(null);
-      await refresh();
     } finally {
       setDeletingTransactionId((current) =>
         current === transactionId ? null : current
@@ -199,8 +216,143 @@ export default function MovementsScreen() {
       toSaveTransactionInput(values)
     );
     setEditingTransaction(null);
-    await refresh();
   }
+
+  const renderTransactionItem = useCallback(
+    ({ item }: { item: Transaction }) => (
+      <TransactionCard
+        accountNameById={accountNameById}
+        categoryNameById={categoryNameById}
+        deletingTransactionId={deletingTransactionId}
+        isSubmitting={isSubmitting}
+        onDeletePress={handleDeletePress}
+        onEditPress={setEditingTransaction}
+        transaction={item}
+      />
+    ),
+    [accountNameById, categoryNameById, deletingTransactionId, isSubmitting]
+  );
+
+  const listHeader = (
+    <View style={[styles.listHeader, hasVisibleTransactions ? styles.listHeaderWithItems : null]}>
+      <PeriodSwitcher
+        label="Período seleccionado"
+        onNext={goToNextMonth}
+        onPrevious={goToPreviousMonth}
+        value={formatPeriodLabel(selectedMonth, selectedYear)}
+      />
+
+      <View style={styles.filtersBlock}>
+        <View style={styles.filtersHeader}>
+          <View style={styles.filtersHeaderCopy}>
+            <Text style={styles.filtersEyebrow}>Filtros rápidos</Text>
+            <Text style={styles.filtersTitle}>Ajustá la lista sin tapar movimientos</Text>
+          </View>
+          <Pressable
+            disabled={!hasActiveFilters}
+            onPress={() => {
+              resetTransactionFilters();
+              setOpenFilter(null);
+            }}
+            style={[
+              styles.resetFiltersButton,
+              !hasActiveFilters ? styles.resetFiltersButtonDisabled : null,
+            ]}
+          >
+            <Text
+              style={[
+                styles.resetText,
+                !hasActiveFilters ? styles.resetTextDisabled : null,
+              ]}
+            >
+              Limpiar
+            </Text>
+          </Pressable>
+        </View>
+
+        <ScrollView
+          contentContainerStyle={styles.filtersRail}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+        >
+          <FilterChip
+            iconName="swap-horizontal-outline"
+            isActive={transactionFilters.type !== null}
+            label="Tipo"
+            onPress={() =>
+              setOpenFilter((current) => (current === 'type' ? null : 'type'))
+            }
+            value={selectedTypeLabel}
+          />
+
+          <FilterChip
+            iconName="wallet-outline"
+            isActive={transactionFilters.accountId !== null}
+            label="Cuenta"
+            onPress={() =>
+              setOpenFilter((current) => (current === 'account' ? null : 'account'))
+            }
+            value={selectedAccountLabel}
+          />
+
+          {transactionFilters.type !== 'transfer' ? (
+            <FilterChip
+              iconName="pricetags-outline"
+              isActive={transactionFilters.categoryId !== null}
+              label="Categoría"
+              onPress={() =>
+                setOpenFilter((current) => (current === 'category' ? null : 'category'))
+              }
+              value={selectedCategoryLabel}
+            />
+          ) : null}
+
+          {hasActiveFilters ? (
+            <Pressable
+              onPress={() => {
+                resetTransactionFilters();
+                setOpenFilter(null);
+              }}
+              style={styles.clearRailChip}
+            >
+              <Ionicons color={colors.muted} name="close-circle-outline" size={16} />
+              <Text style={styles.clearRailChipText}>Limpiar filtros</Text>
+            </Pressable>
+          ) : null}
+        </ScrollView>
+      </View>
+
+      {!isLoading && !errorMessage && mutationErrorMessage ? (
+        <StateCard
+          description={mutationErrorMessage}
+          iconName="close-circle-outline"
+          title="No se pudo completar la acción"
+          tone="error"
+        />
+      ) : null}
+    </View>
+  );
+
+  const listEmpty = isLoading ? (
+    <StateCard
+      description="Cargando movimientos..."
+      loading
+      title="Preparando registros"
+    />
+  ) : errorMessage ? (
+    <StateCard
+      description={errorMessage}
+      iconName="alert-circle-outline"
+      title="No se pudieron cargar los movimientos"
+      tone="error"
+    />
+  ) : (
+    <StateCard
+      description="Ajusta el período o crea un nuevo movimiento desde la tab central."
+      iconName="swap-horizontal-outline"
+      title="No hay movimientos para este filtro"
+    />
+  );
 
   return (
     <Screen
@@ -211,237 +363,22 @@ export default function MovementsScreen() {
     >
       <StatusBar style="light" />
 
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
+      <FlatList
+        contentContainerStyle={styles.listContent}
+        data={hasVisibleTransactions ? transactions : []}
+        initialNumToRender={8}
+        ItemSeparatorComponent={TransactionSeparator}
         keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled"
+        keyExtractor={(item) => item.id}
+        ListEmptyComponent={listEmpty}
+        ListHeaderComponent={listHeader}
+        ListHeaderComponentStyle={styles.listHeaderContainer}
+        maxToRenderPerBatch={8}
+        renderItem={renderTransactionItem}
         showsVerticalScrollIndicator={false}
-      >
-        <PeriodSwitcher
-          label="Período seleccionado"
-          onNext={goToNextMonth}
-          onPrevious={goToPreviousMonth}
-          value={formatPeriodLabel(selectedMonth, selectedYear)}
-        />
-
-        <View style={styles.filtersBlock}>
-          <View style={styles.filtersHeader}>
-            <View style={styles.filtersHeaderCopy}>
-              <Text style={styles.filtersEyebrow}>Filtros rápidos</Text>
-              <Text style={styles.filtersTitle}>Ajustá la lista sin tapar movimientos</Text>
-            </View>
-            <Pressable
-              disabled={!hasActiveFilters}
-              onPress={() => {
-                resetTransactionFilters();
-                setOpenFilter(null);
-              }}
-              style={[
-                styles.resetFiltersButton,
-                !hasActiveFilters ? styles.resetFiltersButtonDisabled : null,
-              ]}
-            >
-              <Text
-                style={[
-                  styles.resetText,
-                  !hasActiveFilters ? styles.resetTextDisabled : null,
-                ]}
-              >
-                Limpiar
-              </Text>
-            </Pressable>
-          </View>
-
-          <ScrollView
-            contentContainerStyle={styles.filtersRail}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-          >
-            <FilterChip
-              iconName="swap-horizontal-outline"
-              isActive={transactionFilters.type !== null}
-              label="Tipo"
-              onPress={() =>
-                setOpenFilter((current) => (current === 'type' ? null : 'type'))
-              }
-              value={selectedTypeLabel}
-            />
-
-            <FilterChip
-              iconName="wallet-outline"
-              isActive={transactionFilters.accountId !== null}
-              label="Cuenta"
-              onPress={() =>
-                setOpenFilter((current) => (current === 'account' ? null : 'account'))
-              }
-              value={selectedAccountLabel}
-            />
-
-            {transactionFilters.type !== 'transfer' ? (
-              <FilterChip
-                iconName="pricetags-outline"
-                isActive={transactionFilters.categoryId !== null}
-                label="Categoría"
-                onPress={() =>
-                  setOpenFilter((current) =>
-                    current === 'category' ? null : 'category'
-                  )
-                }
-                value={selectedCategoryLabel}
-              />
-            ) : null}
-
-            {hasActiveFilters ? (
-              <Pressable
-                onPress={() => {
-                  resetTransactionFilters();
-                  setOpenFilter(null);
-                }}
-                style={styles.clearRailChip}
-              >
-                <Ionicons color={colors.muted} name="close-circle-outline" size={16} />
-                <Text style={styles.clearRailChipText}>Limpiar filtros</Text>
-              </Pressable>
-            ) : null}
-          </ScrollView>
-        </View>
-
-        {isLoading ? (
-          <StateCard
-            description="Cargando movimientos..."
-            loading
-            title="Preparando registros"
-          />
-        ) : null}
-
-        {!isLoading && errorMessage ? (
-          <StateCard
-            description={errorMessage}
-            iconName="alert-circle-outline"
-            title="No se pudieron cargar los movimientos"
-            tone="error"
-          />
-        ) : null}
-
-        {!isLoading && !errorMessage && mutationErrorMessage ? (
-          <StateCard
-            description={mutationErrorMessage}
-            iconName="close-circle-outline"
-            title="No se pudo completar la acción"
-            tone="error"
-          />
-        ) : null}
-
-        {!isLoading && !errorMessage && transactions.length === 0 ? (
-          <StateCard
-            description="Ajusta el período o crea un nuevo movimiento desde la tab central."
-            iconName="swap-horizontal-outline"
-            title="No hay movimientos para este filtro"
-          />
-        ) : null}
-
-        {!isLoading && !errorMessage
-          ? transactions.map((transaction) => (
-              <View key={transaction.id} style={styles.transactionCard}>
-                <View style={styles.transactionHeader}>
-                  <View style={styles.transactionIdentity}>
-                    <View
-                      style={[
-                        styles.transactionBadge,
-                        transaction.type === 'expense'
-                          ? styles.transactionBadgeNegative
-                          : transaction.type === 'transfer'
-                            ? styles.transactionBadgeNeutral
-                            : styles.transactionBadgePositive,
-                      ]}
-                    >
-                      <Ionicons
-                        color={
-                          transaction.type === 'expense'
-                            ? colors.danger
-                            : transaction.type === 'transfer'
-                              ? colors.text
-                              : colors.success
-                        }
-                        name={getTransactionTypeIconName(transaction.type)}
-                        size={18}
-                      />
-                    </View>
-                    <View style={styles.transactionCopy}>
-                      <Text style={styles.transactionType}>
-                        {getTransactionTypeLabel(transaction.type)}
-                      </Text>
-                      <Text style={styles.transactionDate}>
-                        {formatTransactionDate(transaction.date)}
-                      </Text>
-                    </View>
-                  </View>
-                  <Text
-                    style={[
-                      styles.transactionAmount,
-                      transaction.type === 'expense'
-                        ? styles.transactionAmountExpense
-                        : transaction.type === 'transfer'
-                          ? styles.transactionAmountTransfer
-                          : styles.transactionAmountPositive,
-                    ]}
-                  >
-                    {getTransactionAmountPrefix(transaction.type)}
-                    {formatMoneyInPesos(transaction.amount)}
-                  </Text>
-                </View>
-
-                <Text style={styles.transactionContext}>
-                  {getTransactionContextLabel(
-                    transaction,
-                    accountNameById,
-                    categoryNameById
-                  )}
-                </Text>
-
-                {transaction.note ? (
-                  <Text style={styles.transactionNote}>{transaction.note}</Text>
-                ) : null}
-
-                <View style={styles.transactionActions}>
-                  <Pressable
-                    disabled={isSubmitting}
-                    onPress={() => setEditingTransaction(transaction)}
-                    style={[
-                      styles.editButton,
-                      isSubmitting ? styles.actionButtonDisabled : null,
-                    ]}
-                  >
-                    <Ionicons color={colors.text} name="create-outline" size={16} />
-                    <Text style={styles.editButtonText}>Editar</Text>
-                  </Pressable>
-                  <Pressable
-                    disabled={isSubmitting}
-                    onPress={() => handleDeletePress(transaction)}
-                    style={[
-                      styles.deleteButton,
-                      isSubmitting ? styles.actionButtonDisabled : null,
-                    ]}
-                  >
-                    {deletingTransactionId === transaction.id ? (
-                      <ActivityIndicator color={colors.danger} size="small" />
-                    ) : (
-                      <Ionicons
-                        color={colors.danger}
-                        name="trash-outline"
-                        size={16}
-                      />
-                    )}
-                    <Text style={styles.deleteButtonText}>
-                      {deletingTransactionId === transaction.id
-                        ? 'Eliminando...'
-                        : 'Eliminar'}
-                    </Text>
-                  </Pressable>
-                </View>
-              </View>
-            ))
-          : null}
-      </ScrollView>
+        windowSize={7}
+      />
 
       <Modal
         animationType="slide"
@@ -606,6 +543,109 @@ type FilterOption = {
   label: string;
 };
 
+type TransactionCardProps = {
+  accountNameById: Map<string, string>;
+  categoryNameById: Map<string, string>;
+  deletingTransactionId: string | null;
+  isSubmitting: boolean;
+  onDeletePress: (transaction: Transaction) => void;
+  onEditPress: (transaction: Transaction) => void;
+  transaction: Transaction;
+};
+
+function TransactionSeparator() {
+  return <View style={styles.transactionSeparator} />;
+}
+
+function TransactionCard({
+  accountNameById,
+  categoryNameById,
+  deletingTransactionId,
+  isSubmitting,
+  onDeletePress,
+  onEditPress,
+  transaction,
+}: TransactionCardProps) {
+  return (
+    <View style={styles.transactionCard}>
+      <View style={styles.transactionHeader}>
+        <View style={styles.transactionIdentity}>
+          <View
+            style={[
+              styles.transactionBadge,
+              transaction.type === 'expense'
+                ? styles.transactionBadgeNegative
+                : transaction.type === 'transfer'
+                  ? styles.transactionBadgeNeutral
+                  : styles.transactionBadgePositive,
+            ]}
+          >
+            <Ionicons
+              color={
+                transaction.type === 'expense'
+                  ? colors.danger
+                  : transaction.type === 'transfer'
+                    ? colors.text
+                    : colors.success
+              }
+              name={getTransactionTypeIconName(transaction.type)}
+              size={18}
+            />
+          </View>
+          <View style={styles.transactionCopy}>
+            <Text style={styles.transactionType}>{getTransactionTypeLabel(transaction.type)}</Text>
+            <Text style={styles.transactionDate}>{formatTransactionDate(transaction.date)}</Text>
+          </View>
+        </View>
+        <Text
+          style={[
+            styles.transactionAmount,
+            transaction.type === 'expense'
+              ? styles.transactionAmountExpense
+              : transaction.type === 'transfer'
+                ? styles.transactionAmountTransfer
+                : styles.transactionAmountPositive,
+          ]}
+        >
+          {getTransactionAmountPrefix(transaction.type)}
+          {formatMoneyInPesos(transaction.amount)}
+        </Text>
+      </View>
+
+      <Text style={styles.transactionContext}>
+        {getTransactionContextLabel(transaction, accountNameById, categoryNameById)}
+      </Text>
+
+      {transaction.note ? <Text style={styles.transactionNote}>{transaction.note}</Text> : null}
+
+      <View style={styles.transactionActions}>
+        <Pressable
+          disabled={isSubmitting}
+          onPress={() => onEditPress(transaction)}
+          style={[styles.editButton, isSubmitting ? styles.actionButtonDisabled : null]}
+        >
+          <Ionicons color={colors.text} name="create-outline" size={16} />
+          <Text style={styles.editButtonText}>Editar</Text>
+        </Pressable>
+        <Pressable
+          disabled={isSubmitting}
+          onPress={() => onDeletePress(transaction)}
+          style={[styles.deleteButton, isSubmitting ? styles.actionButtonDisabled : null]}
+        >
+          {deletingTransactionId === transaction.id ? (
+            <ActivityIndicator color={colors.danger} size="small" />
+          ) : (
+            <Ionicons color={colors.danger} name="trash-outline" size={16} />
+          )}
+          <Text style={styles.deleteButtonText}>
+            {deletingTransactionId === transaction.id ? 'Eliminando...' : 'Eliminar'}
+          </Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
 type FilterChipProps = {
   iconName: IconName;
   label: string;
@@ -694,9 +734,17 @@ function getTransactionTypeIconName(type: TransactionType): IconName {
 }
 
 const styles = StyleSheet.create({
-  scrollContent: {
-    gap: 18,
+  listContent: {
     paddingBottom: 32,
+  },
+  listHeaderContainer: {
+    marginBottom: 18,
+  },
+  listHeader: {
+    gap: 18,
+  },
+  listHeaderWithItems: {
+    marginBottom: 0,
   },
   filtersBlock: {
     gap: 12,
@@ -856,6 +904,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 16,
     gap: 10,
+  },
+  transactionSeparator: {
+    height: 18,
   },
   transactionHeader: {
     flexDirection: 'row',
