@@ -1,7 +1,8 @@
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 
+import { LaunchScreen } from '../components';
 import { DatabaseProvider } from '../database/client/provider';
 import {
   ProfileNameModal,
@@ -19,6 +20,8 @@ SplashScreen.setOptions({
   fade: true,
 });
 
+const MINIMUM_LAUNCH_SCREEN_DURATION_MS = 1000;
+
 export default function RootLayout() {
   useEffect(() => {
     enableLayoutAnimations();
@@ -33,6 +36,7 @@ export default function RootLayout() {
 
 function RootNavigation() {
   const { isLoading, profile } = useUserProfileBootstrap();
+  const [isLaunchScreenVisible, setIsLaunchScreenVisible] = useState(true);
   const {
     errorMessage,
     isSubmitting,
@@ -43,16 +47,40 @@ function RootNavigation() {
     isAuthenticating: isAuthenticatingAppLock,
     isLocked,
     unlock,
-  } = useAppLock(profile?.appLockEnabled ?? false, !isLoading && profile !== null);
+  } = useAppLock(
+    profile?.appLockEnabled ?? false,
+    !isLoading && profile !== null && !isLaunchScreenVisible
+  );
+  const hasHiddenNativeSplashRef = useRef(false);
+  const launchStartedAtRef = useRef(Date.now());
+
+  function hideNativeSplash() {
+    if (hasHiddenNativeSplashRef.current) {
+      return;
+    }
+
+    hasHiddenNativeSplashRef.current = true;
+    void SplashScreen.hideAsync().catch(() => {});
+  }
 
   useEffect(() => {
-    if (!isLoading) {
-      void SplashScreen.hideAsync();
+    if (isLoading) {
+      return;
     }
+
+    const elapsed = Date.now() - launchStartedAtRef.current;
+    const remaining = Math.max(0, MINIMUM_LAUNCH_SCREEN_DURATION_MS - elapsed);
+    const timeout = setTimeout(() => {
+      setIsLaunchScreenVisible(false);
+    }, remaining);
+
+    return () => {
+      clearTimeout(timeout);
+    };
   }, [isLoading]);
 
-  if (isLoading) {
-    return null;
+  if (isLoading || isLaunchScreenVisible) {
+    return <LaunchScreen onReady={hideNativeSplash} />;
   }
 
   return (
