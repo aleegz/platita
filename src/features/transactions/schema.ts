@@ -69,7 +69,7 @@ export const transactionFormSchema = z
       });
     }
 
-    if (values.categoryId.trim().length === 0) {
+    if (values.type !== 'yield' && values.categoryId.trim().length === 0) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
         message: 'Selecciona una categoría.',

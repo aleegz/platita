@@ -7,6 +7,7 @@ import type {
   Transaction,
   TransactionType,
 } from '../../types/domain';
+import { yieldSystemCategoryId } from '../categories/types';
 import { createCurrencyFormatter } from '../../lib/formatters';
 
 export const transactionTypeValues = [
@@ -147,7 +148,10 @@ export function toSaveTransactionInput(
     accountId: values.accountId || null,
     fromAccountId: null,
     toAccountId: null,
-    categoryId: values.categoryId || null,
+    categoryId:
+      values.type === 'yield'
+        ? yieldSystemCategoryId
+        : values.categoryId || null,
     note: normalizeNote(values.note),
   };
 }
@@ -175,7 +179,10 @@ export function toTransactionFormValues(
     accountId: transaction.accountId ?? '',
     fromAccountId: '',
     toAccountId: '',
-    categoryId: transaction.categoryId ?? '',
+    categoryId:
+      transaction.type === 'yield'
+        ? yieldSystemCategoryId
+        : transaction.categoryId ?? '',
     note: transaction.note ?? '',
   };
 }

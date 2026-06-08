@@ -7,6 +7,7 @@ import type {
   Transaction,
   TransactionType,
 } from '../../types/domain';
+import { yieldSystemCategoryId } from '../categories/types';
 import type {
   SaveTransactionInput,
   TransactionListFilters,
@@ -51,19 +52,23 @@ export function createTransactionService(
           requireActiveAccount(accountRepository, input.toAccountId),
         ]);
       } else {
+        const categoryId = resolveCategoryId(input);
+
         if (!input.accountId) {
           throw createUserFacingError('Selecciona una cuenta.');
         }
 
-        if (!input.categoryId) {
+        if (!categoryId) {
           throw createUserFacingError('Selecciona una categoría.');
         }
 
         await Promise.all([
           requireActiveAccount(accountRepository, input.accountId),
-          requireMatchingCategory(categoryRepository, input.categoryId, input.type),
+          requireMatchingCategory(categoryRepository, categoryId, input.type),
         ]);
       }
+
+      const categoryId = input.type === 'transfer' ? null : resolveCategoryId(input);
 
       const timestamp = createTimestamp();
 
@@ -75,7 +80,7 @@ export function createTransactionService(
         accountId: input.accountId,
         fromAccountId: input.fromAccountId,
         toAccountId: input.toAccountId,
-        categoryId: input.categoryId,
+        categoryId,
         note: input.note,
         createdAt: timestamp,
         updatedAt: timestamp,
@@ -109,19 +114,23 @@ export function createTransactionService(
           requireActiveAccount(accountRepository, input.toAccountId),
         ]);
       } else {
+        const categoryId = resolveCategoryId(input);
+
         if (!input.accountId) {
           throw createUserFacingError('Selecciona una cuenta.');
         }
 
-        if (!input.categoryId) {
+        if (!categoryId) {
           throw createUserFacingError('Selecciona una categoría.');
         }
 
         await Promise.all([
           requireActiveAccount(accountRepository, input.accountId),
-          requireMatchingCategory(categoryRepository, input.categoryId, input.type),
+          requireMatchingCategory(categoryRepository, categoryId, input.type),
         ]);
       }
+
+      const categoryId = input.type === 'transfer' ? null : resolveCategoryId(input);
 
       return transactionRepository.update(id, {
         type: input.type,
@@ -130,7 +139,7 @@ export function createTransactionService(
         accountId: input.accountId,
         fromAccountId: input.fromAccountId,
         toAccountId: input.toAccountId,
-        categoryId: input.categoryId,
+        categoryId,
         note: input.note,
         updatedAt: createTimestamp(),
       });
@@ -195,6 +204,10 @@ async function requireMatchingCategory(
 
 function createTimestamp() {
   return new Date().toISOString();
+}
+
+function resolveCategoryId(input: SaveTransactionInput) {
+  return input.type === 'yield' ? yieldSystemCategoryId : input.categoryId;
 }
 
 function createTransactionId() {

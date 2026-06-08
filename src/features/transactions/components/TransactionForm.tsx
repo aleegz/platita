@@ -35,6 +35,7 @@ import {
 import { animateNextLayout } from '../../../lib/motion';
 import { useKeyboardAwareScroll } from '../../../lib/useKeyboardAwareScroll';
 import { colors } from '../../../theme';
+import { yieldSystemCategoryId } from '../../categories/types';
 import type { Account, Category, TransactionType } from '../../../types/domain';
 import { transactionFormSchema } from '../schema';
 import {
@@ -108,8 +109,18 @@ export function TransactionForm({
       category.type === selectedType &&
       (category.active || category.id === selectedCategoryId)
   );
+  const yieldCategoryAvailable = categories.some(
+    (category) =>
+      category.id === yieldSystemCategoryId &&
+      category.type === 'yield' &&
+      category.active
+  );
   const selectedCategoriesAvailable =
-    selectedType === 'transfer' ? true : filteredCategories.length > 0;
+    selectedType === 'transfer'
+      ? true
+      : selectedType === 'yield'
+        ? yieldCategoryAvailable
+        : filteredCategories.length > 0;
   const { scrollViewRef, createFocusHandler } = useKeyboardAwareScroll();
   const submitDisabled =
     isSubmitting ||
@@ -186,7 +197,9 @@ export function TransactionForm({
       { anchor: 'amount', fields: ['amount'] },
       selectedType === 'transfer'
         ? { anchor: 'accounts', fields: ['fromAccountId', 'toAccountId'] }
-        : { anchor: 'accounts', fields: ['accountId', 'categoryId'] },
+        : selectedType === 'yield'
+          ? { anchor: 'accounts', fields: ['accountId'] }
+          : { anchor: 'accounts', fields: ['accountId', 'categoryId'] },
       { anchor: 'date', fields: ['date'] },
       { anchor: 'note', fields: ['note'] },
     ];
@@ -212,16 +225,30 @@ export function TransactionForm({
 
     previousTypeRef.current = selectedType;
     animateNextLayout();
-    setValue('categoryId', '');
 
     if (selectedType === 'transfer') {
+      setValue('categoryId', '');
       setValue('accountId', '');
       return;
     }
 
+    setValue(
+      'categoryId',
+      selectedType === 'yield' ? yieldSystemCategoryId : ''
+    );
+
     setValue('fromAccountId', '');
     setValue('toAccountId', '');
   }, [selectedType, setValue]);
+
+  useEffect(() => {
+    if (
+      selectedType === 'yield' &&
+      selectedCategoryId !== yieldSystemCategoryId
+    ) {
+      setValue('categoryId', yieldSystemCategoryId);
+    }
+  }, [selectedCategoryId, selectedType, setValue]);
 
   useEffect(() => {
     if (showSubmitValidationFeedback && Object.keys(errors).length === 0) {
@@ -363,11 +390,19 @@ export function TransactionForm({
               description={
                 selectedType === 'transfer'
                   ? 'Define desde qué cuenta sale el dinero y a cuál entra.'
-                  : 'Selecciona la cuenta que impacta y la categoría asociada.'
+                  : selectedType === 'yield'
+                    ? 'Selecciona la cuenta donde quieres registrar el rendimiento.'
+                    : 'Selecciona la cuenta que impacta y la categoría asociada.'
               }
               enabled={groupFieldsInCards}
               iconName={selectedType === 'transfer' ? 'swap-horizontal-outline' : 'wallet-outline'}
-              title={selectedType === 'transfer' ? 'Cuentas involucradas' : 'Cuenta y categoría'}
+              title={
+                selectedType === 'transfer'
+                  ? 'Cuentas involucradas'
+                  : selectedType === 'yield'
+                    ? 'Cuenta'
+                    : 'Cuenta y categoría'
+              }
             >
               {selectedType === 'transfer' ? (
                 <>
@@ -395,11 +430,13 @@ export function TransactionForm({
                   label="Cuenta"
                   name="accountId"
                 />
-                <CategorySelectionField
-                  categories={filteredCategories}
-                  control={control}
-                  errorMessage={errors.categoryId?.message}
-                />
+                {selectedType !== 'yield' ? (
+                  <CategorySelectionField
+                    categories={filteredCategories}
+                    control={control}
+                    errorMessage={errors.categoryId?.message}
+                  />
+                ) : null}
                 </>
               )}
             </FormSectionCard>
@@ -485,12 +522,20 @@ export function TransactionForm({
 
           {!isLoadingReferences &&
           selectedType !== 'transfer' &&
-          filteredCategories.length === 0 ? (
+          !selectedCategoriesAvailable ? (
             <StateCard
               align="left"
-              description="No hay categorías activas disponibles para este tipo de movimiento."
+              description={
+                selectedType === 'yield'
+                  ? 'No está disponible la categoría interna necesaria para registrar rendimientos.'
+                  : 'No hay categorías activas disponibles para este tipo de movimiento.'
+              }
               iconName="pricetags-outline"
-              title="Faltan categorías disponibles"
+              title={
+                selectedType === 'yield'
+                  ? 'Falta la categoría de rendimientos'
+                  : 'Faltan categorías disponibles'
+              }
               tone="warning"
             />
           ) : null}
@@ -1082,16 +1127,17 @@ function getTransactionConfirmationItems(
       }
     );
   } else {
-    items.push(
-      {
-        label: 'Cuenta',
-        value: getAccountNameById(accounts, values.accountId),
-      },
-      {
+    items.push({
+      label: 'Cuenta',
+      value: getAccountNameById(accounts, values.accountId),
+    });
+
+    if (values.type !== 'yield') {
+      items.push({
         label: 'Categoría',
         value: getCategoryNameById(categories, values.categoryId),
-      }
-    );
+      });
+    }
   }
 
   const normalizedNote = values.note.trim();

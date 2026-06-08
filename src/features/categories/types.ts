@@ -9,9 +9,11 @@ export const categoryTypeValues = [
   'yield',
 ] as const;
 
+export const yieldSystemCategoryId = 'yield-investments';
+
 export const protectedSystemCategoryIds = [
   'income-salary',
-  'yield-investments',
+  yieldSystemCategoryId,
 ] as const;
 
 export type SaveCategoryInput = {

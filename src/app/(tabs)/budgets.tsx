@@ -1,3 +1,4 @@
+import { useRouter, type Href } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo, useState } from 'react';
 import {
@@ -18,6 +19,7 @@ import {
   StateCard,
 } from '../../components';
 import { useAppStore } from '../../store/app.store';
+import { useFiltersStore } from '../../store/filters.store';
 import { colors } from '../../theme';
 import type { BudgetListItem } from '../../features/budgets/types';
 import {
@@ -30,12 +32,18 @@ import {
   useBudgetMutations,
 } from '../../features/budgets';
 
+const movementsRoute = '/(tabs)/movements' as Href;
+
 export default function BudgetsScreen() {
+  const router = useRouter();
   const { data, errorMessage, isLoading, selectedMonth, selectedYear } = useBudgets();
   const { errorMessage: submitErrorMessage, isSubmitting, upsertBudget } =
     useBudgetMutations();
   const goToPreviousMonth = useAppStore((state) => state.goToPreviousMonth);
   const goToNextMonth = useAppStore((state) => state.goToNextMonth);
+  const setTransactionFilters = useFiltersStore(
+    (state) => state.setTransactionFilters
+  );
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
 
   const editingItem = useMemo(
@@ -55,6 +63,15 @@ export default function BudgetsScreen() {
       setEditingCategoryId(null);
     }
   }, [data.items, editingCategoryId]);
+
+  function handleViewMovements(categoryId: string) {
+    setTransactionFilters({
+      type: 'expense',
+      categoryId,
+      accountId: null,
+    });
+    router.push(movementsRoute);
+  }
 
   return (
     <Screen
@@ -115,8 +132,11 @@ export default function BudgetsScreen() {
                 style={styles.sectionIntro}
                 title="Panorama mensual"
               />
-              {data.items.map((item) => (
-                <View key={item.categoryId} style={styles.budgetCard}>
+              {data.items.map((item) => {
+                const hasMovements = item.spentAmount > 0;
+
+                return (
+                  <View key={item.categoryId} style={styles.budgetCard}>
                   <View style={styles.budgetHeader}>
                     <View style={styles.budgetCopy}>
                       <Text style={styles.categoryName}>{item.categoryName}</Text>
@@ -165,31 +185,56 @@ export default function BudgetsScreen() {
                     />
                   </View>
 
-                  <Pressable
-                    onPress={() => setEditingCategoryId(item.categoryId)}
-                    style={[
-                      styles.editButton,
-                      editingCategoryId === item.categoryId
-                        ? styles.editButtonActive
-                        : null,
-                    ]}
-                  >
-                    <Text style={styles.editButtonText}>
-                      {item.source === 'current'
-                        ? editingCategoryId === item.categoryId
-                          ? 'Editando presupuesto'
-                          : 'Editar presupuesto'
-                        : item.source === 'previous_month'
+                  <View style={styles.actionsRow}>
+                    <Pressable
+                      disabled={!hasMovements}
+                      onPress={
+                        hasMovements
+                          ? () => handleViewMovements(item.categoryId)
+                          : undefined
+                      }
+                      style={[
+                        styles.editButton,
+                        hasMovements ? styles.editButtonActive : styles.secondaryButton,
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.editButtonText,
+                          hasMovements ? null : styles.secondaryButtonText,
+                        ]}
+                      >
+                        Ver movimientos
+                      </Text>
+                    </Pressable>
+
+                    <Pressable
+                      onPress={() => setEditingCategoryId(item.categoryId)}
+                      style={[
+                        styles.editButton,
+                        editingCategoryId === item.categoryId
+                          ? styles.editButtonActive
+                          : null,
+                      ]}
+                    >
+                      <Text style={styles.editButtonText}>
+                        {item.source === 'current'
                           ? editingCategoryId === item.categoryId
-                            ? 'Personalizando presupuesto'
-                            : 'Personalizar presupuesto'
-                        : editingCategoryId === item.categoryId
-                          ? 'Configurando presupuesto'
-                          : 'Configurar presupuesto'}
-                    </Text>
-                  </Pressable>
-                </View>
-              ))}
+                            ? 'Editando presupuesto'
+                            : 'Editar presupuesto'
+                          : item.source === 'previous_month'
+                            ? editingCategoryId === item.categoryId
+                              ? 'Personalizando presupuesto'
+                              : 'Personalizar presupuesto'
+                            : editingCategoryId === item.categoryId
+                              ? 'Configurando presupuesto'
+                              : 'Configurar presupuesto'}
+                      </Text>
+                    </Pressable>
+                  </View>
+                  </View>
+                );
+              })}
             </View>
           ) : null}
         </ScrollView>
@@ -475,12 +520,22 @@ const styles = StyleSheet.create({
     backgroundColor: colors.danger,
   },
   editButton: {
+    flex: 1,
     minHeight: 48,
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.surfaceAccent,
     paddingHorizontal: 16,
+  },
+  actionsRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  secondaryButton: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
   },
   editButtonActive: {
     backgroundColor: colors.surfaceMuted,
@@ -489,6 +544,9 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 14,
     fontWeight: '700',
+  },
+  secondaryButtonText: {
+    color: colors.muted,
   },
   modalOverlay: {
     flex: 1,
