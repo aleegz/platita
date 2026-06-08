@@ -44,6 +44,8 @@ import { accountFormSchema, type AccountFormValues } from '../schema';
 
 type FormSectionAnchor = 'name' | 'type' | 'initialBalance' | 'submit';
 
+type FocusableField = 'initialBalance' | null;
+
 type AccountFormProps = {
   title: string;
   description: string;
@@ -88,9 +90,12 @@ export function AccountForm({
   const openingBalanceHelperText = getAccountOpeningBalanceHelperText(selectedType);
   const openingBalancePreviewLabel =
     getAccountOpeningBalancePreviewLabel(selectedType);
-  const { scrollViewRef, createFocusHandler } = useKeyboardAwareScroll();
+  const { scrollViewRef, handleScroll, createFocusHandler, keyboardBottomInset } =
+    useKeyboardAwareScroll();
   const [showSubmitValidationFeedback, setShowSubmitValidationFeedback] = useState(false);
+  const [focusedField, setFocusedField] = useState<FocusableField>(null);
   const sectionOffsetsRef = useRef<Partial<Record<FormSectionAnchor, number>>>({});
+  const scrollContentBottomInset = insets.bottom + 40 + keyboardBottomInset;
   const validationFeedbackMessage =
     showSubmitValidationFeedback && Object.keys(errors).length > 0
       ? 'Revisá los campos marcados antes de continuar.'
@@ -163,11 +168,13 @@ export function AccountForm({
           automaticallyAdjustKeyboardInsets
           contentContainerStyle={[
             styles.scrollContent,
-            { paddingBottom: insets.bottom + 40 },
+            { paddingBottom: scrollContentBottomInset },
           ]}
           keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
           keyboardShouldPersistTaps="handled"
+          onScroll={handleScroll}
           ref={scrollViewRef}
+          scrollEventThrottle={16}
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.form}>
@@ -264,13 +271,20 @@ export function AccountForm({
                 render={({ field }) => (
                   <TextInput
                     keyboardType="number-pad"
-                    onBlur={field.onBlur}
+                    onBlur={() => {
+                      setFocusedField((current) =>
+                        current === 'initialBalance' ? null : current
+                      );
+                      field.onBlur();
+                    }}
                     onChangeText={(value) => field.onChange(parseMoneyInput(value))}
-                    onFocus={createFocusHandler()}
+                    onFocus={createFocusHandler(() => setFocusedField('initialBalance'))}
                     placeholder="0"
                     placeholderTextColor={colors.muted}
+                    selectionColor={colors.accent}
                     style={[
                       styles.input,
+                      focusedField === 'initialBalance' ? styles.inputFocused : null,
                       errors.initialBalance ? styles.inputError : null,
                     ]}
                     value={String(field.value)}
@@ -393,6 +407,18 @@ const styles = StyleSheet.create({
     fontSize: 16,
     paddingHorizontal: 16,
     paddingVertical: 16,
+  },
+  inputFocused: {
+    borderColor: colors.accent,
+    backgroundColor: colors.surfaceSoft,
+    shadowColor: colors.accent,
+    shadowOffset: {
+      width: 0,
+      height: 0,
+    },
+    shadowOpacity: 0.22,
+    shadowRadius: 10,
+    elevation: 3,
   },
   inputError: {
     borderColor: '#C7604A',

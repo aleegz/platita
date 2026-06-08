@@ -49,6 +49,7 @@ import {
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
 type FormSectionAnchor = 'type' | 'amount' | 'accounts' | 'date' | 'note' | 'submit';
+type FocusableField = 'amount' | 'note' | null;
 
 type TransactionFormProps = {
   title: string;
@@ -99,6 +100,7 @@ export function TransactionForm({
   const [pendingConfirmation, setPendingConfirmation] =
     useState<TransactionFormValues | null>(null);
   const [showSubmitValidationFeedback, setShowSubmitValidationFeedback] = useState(false);
+  const [focusedField, setFocusedField] = useState<FocusableField>(null);
   const selectedType = watch('type');
   const selectedCategoryId = watch('categoryId');
   const previousTypeRef = useRef(selectedType);
@@ -121,7 +123,8 @@ export function TransactionForm({
       : selectedType === 'yield'
         ? yieldCategoryAvailable
         : filteredCategories.length > 0;
-  const { scrollViewRef, createFocusHandler } = useKeyboardAwareScroll();
+  const { scrollViewRef, handleScroll, createFocusHandler, keyboardBottomInset } =
+    useKeyboardAwareScroll();
   const submitDisabled =
     isSubmitting ||
     isLoadingReferences ||
@@ -132,7 +135,7 @@ export function TransactionForm({
       ? 'Revisá los campos marcados antes de continuar.'
       : null;
   const contentBottomInset =
-    presentation === 'screen' ? bottomTabBarHeight + 48 : 28;
+    (presentation === 'screen' ? bottomTabBarHeight + 48 : 28) + keyboardBottomInset;
 
   function closeConfirmationModal() {
     if (isSubmitting) {
@@ -270,7 +273,9 @@ export function TransactionForm({
         ]}
         keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
         keyboardShouldPersistTaps="handled"
+        onScroll={handleScroll}
         ref={scrollViewRef}
+        scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
       >
         <View style={[styles.form, presentation === 'sheet' ? styles.sheetForm : null]}>
@@ -353,13 +358,20 @@ export function TransactionForm({
                 render={({ field }) => (
                   <TextInput
                     keyboardType="number-pad"
-                    onBlur={field.onBlur}
+                    onBlur={() => {
+                      setFocusedField((current) =>
+                        current === 'amount' ? null : current
+                      );
+                      field.onBlur();
+                    }}
                     onChangeText={(value) => field.onChange(parseMoneyInput(value))}
-                    onFocus={createFocusHandler()}
+                    onFocus={createFocusHandler(() => setFocusedField('amount'))}
                     placeholder="0"
                     placeholderTextColor={colors.muted}
+                    selectionColor={colors.accent}
                     style={[
                       styles.input,
+                      focusedField === 'amount' ? styles.inputFocused : null,
                       errors.amount ? styles.inputError : null,
                     ]}
                     value={field.value > 0 ? String(field.value) : ''}
@@ -483,12 +495,22 @@ export function TransactionForm({
                     <TextInput
                       multiline
                       numberOfLines={3}
-                      onBlur={field.onBlur}
+                      onBlur={() => {
+                        setFocusedField((current) => (current === 'note' ? null : current));
+                        field.onBlur();
+                      }}
                       onChangeText={field.onChange}
-                      onFocus={createFocusHandler(undefined, { extraOffset: 196 })}
+                      onFocus={createFocusHandler(() => setFocusedField('note'), {
+                        extraOffset: 32,
+                      })}
                       placeholder="Opcional"
                       placeholderTextColor={colors.muted}
-                      style={[styles.input, styles.textArea]}
+                      selectionColor={colors.accent}
+                      style={[
+                        styles.input,
+                        focusedField === 'note' ? styles.inputFocused : null,
+                        styles.textArea,
+                      ]}
                       textAlignVertical="top"
                       value={field.value}
                     />
@@ -1309,6 +1331,18 @@ const styles = StyleSheet.create({
     fontSize: 16,
     paddingHorizontal: 16,
     paddingVertical: 16,
+  },
+  inputFocused: {
+    borderColor: colors.accent,
+    backgroundColor: colors.surfaceSoft,
+    shadowColor: colors.accent,
+    shadowOffset: {
+      width: 0,
+      height: 0,
+    },
+    shadowOpacity: 0.22,
+    shadowRadius: 10,
+    elevation: 3,
   },
   inputError: {
     borderColor: colors.danger,
