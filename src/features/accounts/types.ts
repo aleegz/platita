@@ -67,6 +67,21 @@ export function getAccountTypeLabel(type: AccountType) {
   return option ? option.label : type;
 }
 
+export function getAccountTypeIconName(type: AccountType) {
+  switch (type) {
+    case 'cash':
+      return 'cash-outline';
+    case 'wallet':
+      return 'wallet-outline';
+    case 'investment':
+      return 'trending-up-outline';
+    case 'credit':
+      return 'card-outline';
+    default:
+      return 'business-outline';
+  }
+}
+
 export function getAccountOpeningBalanceLabel(type: AccountType) {
   return isCreditAccountType(type) ? 'Deuda inicial' : 'Saldo inicial';
 }

@@ -16,7 +16,7 @@ import {
 } from '../../features/accounts';
 import { colors } from '../../theme';
 
-const settingsRoute = '/(tabs)/settings' as Href;
+const accountsRoute = '/accounts' as Href;
 
 export default function AccountDetailScreen() {
   const params = useLocalSearchParams<{ id?: string | string[] }>();
@@ -31,13 +31,13 @@ export default function AccountDetailScreen() {
 
   const currentErrorMessage = errorMessage ?? submitErrorMessage;
 
-  function returnToSettings() {
+  function returnToAccounts() {
     if (router.canGoBack()) {
       router.back();
       return;
     }
 
-    router.replace(settingsRoute);
+    router.replace(accountsRoute);
   }
 
   if (isLoading) {
@@ -45,7 +45,7 @@ export default function AccountDetailScreen() {
       <Screen
         title="Editar cuenta"
         description="Cargando los datos de la cuenta seleccionada."
-        topBar={<TopBarBackButton label="Ajustes" onPress={returnToSettings} />}
+        topBar={<TopBarBackButton label="Cuentas" onPress={returnToAccounts} />}
         topInset
       >
         <View style={styles.centeredCard}>
@@ -61,7 +61,7 @@ export default function AccountDetailScreen() {
       <Screen
         title="Cuenta no encontrada"
         description="No fue posible abrir la cuenta seleccionada."
-        topBar={<TopBarBackButton label="Ajustes" onPress={returnToSettings} />}
+        topBar={<TopBarBackButton label="Cuentas" onPress={returnToAccounts} />}
         topInset
       >
         <View style={styles.messageCard}>
@@ -70,10 +70,10 @@ export default function AccountDetailScreen() {
           </Text>
         </View>
         <Pressable
-          onPress={returnToSettings}
+          onPress={returnToAccounts}
           style={styles.button}
         >
-          <Text style={styles.buttonText}>Volver a ajustes</Text>
+          <Text style={styles.buttonText}>Volver a cuentas</Text>
         </Pressable>
       </Screen>
     );
@@ -81,19 +81,19 @@ export default function AccountDetailScreen() {
 
   return (
     <AccountForm
-      backLabel="Ajustes"
+      backLabel="Cuentas"
       key={account.id}
       defaultValues={toAccountFormValues(account)}
       description="Actualiza nombre, tipo, saldo o deuda inicial y estado de la cuenta."
       errorMessage={submitErrorMessage}
       isSubmitting={isSubmitting}
-      onBackPress={returnToSettings}
+      onBackPress={returnToAccounts}
       showActiveField
       submitLabel="Guardar cambios"
       title="Editar cuenta"
       onSubmit={async (values) => {
         await updateAccount(account.id, values);
-        returnToSettings();
+        returnToAccounts();
       }}
     />
   );

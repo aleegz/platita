@@ -14,6 +14,7 @@ const accountSelectStatement = `
 export type AccountRepository = {
   create(input: CreateAccountDTO): Promise<Account>;
   update(id: string, input: UpdateAccountDTO): Promise<Account | null>;
+  listAll(): Promise<Account[]>;
   listActive(): Promise<Account[]>;
   getById(id: string): Promise<Account | null>;
 };
@@ -111,9 +112,18 @@ export function createAccountRepository(
     return rows.map(mapAccountRow);
   }
 
+  async function listAll() {
+    const rows = await database.getAllAsync<AccountRow>(
+      `${accountSelectStatement} ORDER BY active DESC, name ASC`
+    );
+
+    return rows.map(mapAccountRow);
+  }
+
   return {
     create,
     update,
+    listAll,
     listActive,
     getById,
   };

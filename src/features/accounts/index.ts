@@ -7,6 +7,7 @@ export {
 export { accountFormSchema, type AccountFormValues } from './schema';
 export { createAccountService } from './service';
 export {
+  getAccountTypeIconName,
   accountTypeOptions,
   defaultAccountFormValues,
   getAccountOpeningBalanceHelperText,

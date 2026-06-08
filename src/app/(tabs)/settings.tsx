@@ -1,4 +1,3 @@
-import type { ComponentProps } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import { useRouter, type Href } from 'expo-router';
@@ -22,12 +21,9 @@ import {
   SurfaceCard,
 } from '../../components';
 import {
-  getAccountOpeningBalanceLabel,
-  getAccountTypeLabel,
   useAccounts,
 } from '../../features/accounts';
 import { useDeviceAuthenticationAvailability } from '../../features/security';
-import { createCurrencyFormatter } from '../../lib/formatters';
 import {
   ProfileNameModal,
   useUserProfile,
@@ -37,24 +33,15 @@ import { colors } from '../../theme';
 import logo from '../../../assets/A-VA_01.png';
 import logoBW from '../../../assets/logo_bw.png';
 
-const currencyFormatter = createCurrencyFormatter({
-  currency: 'ARS',
-});
-
-const newAccountRoute = '/accounts/new' as Href;
+const accountsRoute = '/accounts' as Href;
 const backupRoute = '/backup' as Href;
 const categoriesRoute = '/categories' as Href;
-const settingsAccountRoute = (id: string) =>
-  ({
-    pathname: '/accounts/[id]',
-    params: { id },
-  }) as unknown as Href;
-
-type IconName = ComponentProps<typeof Ionicons>['name'];
 
 export default function SettingsScreen() {
   const router = useRouter();
-  const { accounts, errorMessage, isLoading } = useAccounts();
+  const { accounts, errorMessage, isLoading } = useAccounts({
+    includeInactive: true,
+  });
   const { profile } = useUserProfile();
   const {
     appLockErrorMessage,
@@ -73,7 +60,9 @@ export default function SettingsScreen() {
   const [isProfileModalVisible, setIsProfileModalVisible] = useState(false);
   const accountSummaryLabel = isLoading
     ? 'Sincronizando cuentas'
-    : `${accounts.length} ${accounts.length === 1 ? 'cuenta activa' : 'cuentas activas'}`;
+    : errorMessage
+      ? 'Resumen no disponible'
+    : `${accounts.length} ${accounts.length === 1 ? 'cuenta' : 'cuentas'}`;
   const isAppLockEnabled = profile?.appLockEnabled ?? false;
   const isAppLockSwitchDisabled =
     isCheckingDeviceAuthentication ||
@@ -104,7 +93,7 @@ export default function SettingsScreen() {
     <Screen
       eyebrow="Configuración"
       title="Ajustes"
-      description="Configura los datos base de la app y administra tus cuentas de dinero y crédito."
+      description="Configura los datos base de la app y entra a tus catálogos dedicados cuando necesites más detalle."
       topInset
     >
       <StatusBar style="light" />
@@ -119,14 +108,9 @@ export default function SettingsScreen() {
             <Text style={styles.summaryEyebrow}>Configuración base</Text>
             <Text style={styles.summaryTitle}>{accountSummaryLabel}</Text>
             <Text style={styles.summaryDescription}>
-              Administra dónde guardas tu dinero, tus tarjetas y las herramientas clave de la app.
+              Revisa el estado general de tu configuración y entra a cada sección para administrarla con más detalle.
             </Text>
           </View>
-          <ActionButton
-            iconName="add-circle-outline"
-            label="Agregar cuenta"
-            onPress={() => router.push(newAccountRoute)}
-          />
         </SurfaceCard>
 
         <SurfaceCard style={styles.profileCard}>
@@ -201,83 +185,37 @@ export default function SettingsScreen() {
 
         <View style={styles.sectionBlock}>
           <SectionIntro
-            description="Edita nombre, tipo, saldo o deuda inicial y estado de cada cuenta activa."
-            iconName="wallet-outline"
-            title="Cuentas"
-          />
-
-          {isLoading ? (
-            <StateCard
-              description="Cargando cuentas activas..."
-              loading
-              title="Sincronizando cuentas"
-            />
-          ) : null}
-
-          {!isLoading && errorMessage ? (
-            <StateCard
-              description={errorMessage}
-              iconName="alert-circle-outline"
-              title="No se pudieron cargar las cuentas"
-              tone="error"
-            />
-          ) : null}
-
-          {!isLoading && !errorMessage && accounts.length === 0 ? (
-            <StateCard
-              description="Crea tu primera cuenta para empezar a registrar saldos y movimientos."
-              iconName="wallet-outline"
-              title="Todavía no hay cuentas activas"
-            />
-          ) : null}
-
-          {!isLoading && !errorMessage ? (
-            <View style={styles.accountList}>
-              {accounts.map((account) => (
-                <Pressable
-                  key={account.id}
-                  onPress={() => router.push(settingsAccountRoute(account.id))}
-                  style={styles.accountCard}
-                >
-                  <View style={styles.accountHeader}>
-                    <View style={styles.accountIdentity}>
-                      <View style={styles.accountIcon}>
-                        <Ionicons
-                          color={colors.text}
-                          name={getAccountIconName(account.type)}
-                          size={18}
-                        />
-                      </View>
-                      <View style={styles.accountCopy}>
-                        <Text style={styles.accountName}>{account.name}</Text>
-                        <Text style={styles.accountType}>
-                          {getAccountTypeLabel(account.type)}
-                        </Text>
-                      </View>
-                    </View>
-                    <Ionicons
-                      color={colors.muted}
-                      name="chevron-forward"
-                      size={18}
-                    />
-                  </View>
-                  <Text style={styles.accountBalance}>
-                    {getAccountOpeningBalanceLabel(account.type)}:{' '}
-                    {currencyFormatter.format(account.initialBalance / 100)}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-          ) : null}
-        </View>
-
-        <View style={styles.sectionBlock}>
-          <SectionIntro
             description="Accesos rápidos para administrar tu información y mantenimiento local."
             iconName="build-outline"
             title="Herramientas"
           />
           <View style={styles.linkList}>
+            <Pressable
+              onPress={() => router.push(accountsRoute)}
+              style={styles.linkCard}
+            >
+              <View style={styles.linkHeader}>
+                <View style={styles.linkIcon}>
+                  <Ionicons
+                    color={colors.text}
+                    name="wallet-outline"
+                    size={18}
+                  />
+                </View>
+                <View style={styles.linkCopy}>
+                  <Text style={styles.linkTitle}>Cuentas</Text>
+                  <Text style={styles.linkDescription}>
+                    Administra cuentas activas e inactivas, crea nuevas y reactiva las que necesites.
+                  </Text>
+                </View>
+                <Ionicons
+                  color={colors.muted}
+                  name="chevron-forward"
+                  size={18}
+                />
+              </View>
+            </Pressable>
+
             <Pressable
               onPress={() => router.push(backupRoute)}
               style={styles.linkCard}
@@ -465,58 +403,7 @@ const styles = StyleSheet.create({
   securityMetaError: {
     color: colors.danger,
   },
-  accountCard: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 18,
-    backgroundColor: colors.surface,
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    gap: 8,
-  },
-  accountHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  accountIdentity: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  accountIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.surfaceAccent,
-  },
-  accountCopy: {
-    flex: 1,
-    gap: 2,
-  },
-  accountName: {
-    color: colors.text,
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  accountType: {
-    color: colors.muted,
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  accountBalance: {
-    color: colors.text,
-    fontSize: 14,
-    lineHeight: 20,
-  },
   sectionBlock: {
-    gap: 12,
-  },
-  accountList: {
     gap: 12,
   },
   linkList: {
@@ -601,19 +488,3 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
 });
-
-function getAccountIconName(type: Parameters<typeof getAccountTypeLabel>[0]): IconName {
-  switch (type) {
-    case 'cash':
-      return 'cash-outline';
-    case 'wallet':
-      return 'wallet-outline';
-    case 'investment':
-      return 'trending-up-outline';
-    case 'credit':
-      return 'card-outline';
-    default:
-      return 'business-outline';
-  }
-}
-

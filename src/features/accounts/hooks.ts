@@ -19,6 +19,10 @@ type AccountsState = {
   refresh: () => Promise<void>;
 };
 
+type UseAccountsOptions = {
+  includeInactive?: boolean;
+};
+
 type AccountState = {
   account: Account | null;
   isLoading: boolean;
@@ -33,26 +37,34 @@ type AccountMutations = {
   updateAccount: (id: string, input: SaveAccountInput) => Promise<Account>;
 };
 
-export function useAccounts(): AccountsState {
+export function useAccounts(options?: UseAccountsOptions): AccountsState {
   const database = useDatabase();
   const isFocused = useIsFocused();
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const includeInactive = options?.includeInactive ?? false;
 
   async function refresh() {
     setIsLoading(true);
     setErrorMessage(null);
 
     try {
-      const nextAccounts = await createAccountService(database).listActiveAccounts();
+      const service = createAccountService(database);
+      const nextAccounts = includeInactive
+        ? await service.listAccounts()
+        : await service.listActiveAccounts();
 
       animateNextLayout();
       setAccounts(nextAccounts);
     } catch (error) {
       console.error(error);
       animateNextLayout();
-      setErrorMessage('No se pudieron cargar las cuentas activas.');
+      setErrorMessage(
+        includeInactive
+          ? 'No se pudieron cargar las cuentas.'
+          : 'No se pudieron cargar las cuentas activas.'
+      );
     } finally {
       setIsLoading(false);
     }
@@ -64,7 +76,7 @@ export function useAccounts(): AccountsState {
     }
 
     void refresh();
-  }, [isFocused, database]);
+  }, [isFocused, database, includeInactive]);
 
   return {
     accounts,

@@ -6,34 +6,34 @@ import {
   useAccountMutations,
 } from '../../features/accounts';
 
-const settingsRoute = '/(tabs)/settings' as Href;
+const accountsRoute = '/accounts' as Href;
 
 export default function NewAccountScreen() {
   const router = useRouter();
   const { createAccount, errorMessage, isSubmitting } = useAccountMutations();
 
-  function returnToSettings() {
+  function returnToAccounts() {
     if (router.canGoBack()) {
       router.back();
       return;
     }
 
-    router.replace(settingsRoute);
+    router.replace(accountsRoute);
   }
 
   return (
     <AccountForm
-      backLabel="Ajustes"
+      backLabel="Cuentas"
       defaultValues={defaultAccountFormValues}
       description="Guarda una cuenta para empezar a registrar saldos, deudas y movimientos."
       errorMessage={errorMessage}
       isSubmitting={isSubmitting}
-      onBackPress={returnToSettings}
+      onBackPress={returnToAccounts}
       submitLabel="Guardar cuenta"
       title="Nueva cuenta"
       onSubmit={async (values) => {
         await createAccount(values);
-        returnToSettings();
+        returnToAccounts();
       }}
     />
   );

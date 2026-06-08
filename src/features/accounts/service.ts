@@ -6,6 +6,7 @@ import type { SaveAccountInput } from './types';
 export type AccountService = {
   createAccount(input: SaveAccountInput): Promise<Account>;
   updateAccount(id: string, input: SaveAccountInput): Promise<Account | null>;
+  listAccounts(): Promise<Account[]>;
   listActiveAccounts(): Promise<Account[]>;
   getAccountById(id: string): Promise<Account | null>;
 };
@@ -37,6 +38,9 @@ export function createAccountService(
         active: input.active,
         updatedAt: createTimestamp(),
       });
+    },
+    async listAccounts() {
+      return repository.listAll();
     },
     async listActiveAccounts() {
       return repository.listActive();
