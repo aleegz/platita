@@ -1,10 +1,13 @@
 import { createAccountRepository } from '../../database/repositories/account.repository';
+import { createTransactionRepository } from '../../database/repositories/transaction.repository';
+import { createUserFacingError } from '../../lib/errors';
 import type { RepositoryDatabase } from '../../types/database';
 import type { Account } from '../../types/domain';
 import type { SaveAccountInput } from './types';
 
 export type AccountService = {
   createAccount(input: SaveAccountInput): Promise<Account>;
+  deleteAccount(id: string): Promise<void>;
   updateAccount(id: string, input: SaveAccountInput): Promise<Account | null>;
   listAccounts(): Promise<Account[]>;
   listActiveAccounts(): Promise<Account[]>;
@@ -15,6 +18,7 @@ export function createAccountService(
   database: RepositoryDatabase
 ): AccountService {
   const repository = createAccountRepository(database);
+  const transactionRepository = createTransactionRepository(database);
 
   return {
     async createAccount(input) {
@@ -29,6 +33,31 @@ export function createAccountService(
         createdAt: timestamp,
         updatedAt: timestamp,
       });
+    },
+    async deleteAccount(id) {
+      const existingAccount = await repository.getById(id);
+
+      if (!existingAccount) {
+        throw createUserFacingError('La cuenta ya no existe o no está disponible.');
+      }
+
+      if (existingAccount.active) {
+        throw createUserFacingError('Solo puedes eliminar cuentas inactivas.');
+      }
+
+      const transactionCount = await transactionRepository.countByAccountId(id);
+
+      if (transactionCount > 0) {
+        throw createUserFacingError(
+          'No puedes eliminar una cuenta que ya tiene movimientos asociados.'
+        );
+      }
+
+      const deleted = await repository.delete(id);
+
+      if (!deleted) {
+        throw createUserFacingError('La cuenta ya no existe o no está disponible.');
+      }
     },
     async updateAccount(id, input) {
       return repository.update(id, {

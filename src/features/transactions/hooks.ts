@@ -16,6 +16,7 @@ import {
   filtersStoreSelectors,
 } from '../../store/filters.store';
 import type { Account, Category, Transaction } from '../../types/domain';
+import { createAccountService } from '../accounts/service';
 import { createTransactionService } from './service';
 import type {
   SaveTransactionInput,
@@ -115,6 +116,7 @@ export function useTransactions(): TransactionsState {
 
     try {
       const service = createTransactionService(database);
+      const accountService = createAccountService(database);
       const filters: TransactionListFilters = {
         month: selectedMonth,
         year: selectedYear,
@@ -127,10 +129,19 @@ export function useTransactions(): TransactionsState {
         service.listTransactions(filters),
         service.loadReferenceData(),
       ]);
+      const selectedFilteredAccount =
+        transactionFilters.accountId !== null
+          ? await accountService.getAccountById(transactionFilters.accountId)
+          : null;
+      const accounts =
+        selectedFilteredAccount &&
+        !data.accounts.some((account) => account.id === selectedFilteredAccount.id)
+          ? [...data.accounts, selectedFilteredAccount]
+          : data.accounts;
 
       animateNextLayout();
       setTransactions(items);
-      setAccounts(data.accounts);
+      setAccounts(accounts);
       setCategories(data.categories);
     } catch (error) {
       console.error(error);

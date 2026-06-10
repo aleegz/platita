@@ -13,6 +13,7 @@ const accountSelectStatement = `
 
 export type AccountRepository = {
   create(input: CreateAccountDTO): Promise<Account>;
+  delete(id: string): Promise<boolean>;
   update(id: string, input: UpdateAccountDTO): Promise<Account | null>;
   listAll(): Promise<Account[]>;
   listActive(): Promise<Account[]>;
@@ -62,6 +63,12 @@ export function createAccountRepository(
     }
 
     return account;
+  }
+
+  async function remove(id: string) {
+    const result = await database.runAsync(`DELETE FROM accounts WHERE id = ?`, [id]);
+
+    return result.changes > 0;
   }
 
   async function update(id: string, input: UpdateAccountDTO) {
@@ -122,6 +129,7 @@ export function createAccountRepository(
 
   return {
     create,
+    delete: remove,
     update,
     listAll,
     listActive,

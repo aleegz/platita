@@ -29,6 +29,8 @@ type SectionIntroProps = {
   title: string;
   description: string;
   style?: StyleProp<ViewStyle>;
+  iconContainerStyle?: StyleProp<ViewStyle>;
+  iconColor?: string;
 };
 
 type StateCardProps = {
@@ -87,11 +89,13 @@ export function SectionIntro({
   title,
   description,
   style,
+  iconContainerStyle,
+  iconColor = colors.text,
 }: SectionIntroProps) {
   return (
     <View style={[styles.sectionIntro, style]}>
-      <View style={styles.sectionIntroIcon}>
-        <Ionicons color={colors.text} name={iconName} size={18} />
+      <View style={[styles.sectionIntroIcon, iconContainerStyle]}>
+        <Ionicons color={iconColor} name={iconName} size={18} />
       </View>
       <View style={styles.sectionIntroCopy}>
         <Text style={styles.sectionIntroTitle}>{title}</Text>

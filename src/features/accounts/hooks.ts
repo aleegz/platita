@@ -34,6 +34,7 @@ type AccountMutations = {
   isSubmitting: boolean;
   errorMessage: string | null;
   createAccount: (input: SaveAccountInput) => Promise<Account>;
+  deleteAccount: (id: string) => Promise<void>;
   updateAccount: (id: string, input: SaveAccountInput) => Promise<Account>;
 };
 
@@ -144,6 +145,9 @@ export function useAccount(accountId?: string): AccountState {
 
 export function useAccountMutations(): AccountMutations {
   const database = useDatabase();
+  const invalidateTransactions = useDomainInvalidationStore(
+    (state) => state.invalidateTransactions
+  );
   const invalidateTransactionReferences = useDomainInvalidationStore(
     (state) => state.invalidateTransactionReferences
   );
@@ -197,10 +201,35 @@ export function useAccountMutations(): AccountMutations {
     }
   }
 
+  async function deleteAccount(id: string) {
+    setIsSubmitting(true);
+    setErrorMessage(null);
+
+    try {
+      await createAccountService(database).deleteAccount(id);
+
+      invalidateTransactions();
+      invalidateTransactionReferences();
+    } catch (error) {
+      const userMessage = getUserFacingMessage(error, 'No se pudo eliminar la cuenta.');
+
+      if (userMessage !== 'No puedes eliminar una cuenta que ya tiene movimientos asociados.') {
+        console.error(error);
+      }
+
+      setErrorMessage(userMessage);
+
+      throw error;
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
   return {
     isSubmitting,
     errorMessage,
     createAccount,
+    deleteAccount,
     updateAccount,
   };
 }

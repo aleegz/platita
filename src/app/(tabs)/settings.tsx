@@ -283,7 +283,7 @@ export default function SettingsScreen() {
           
           <View style={styles.version}>
             <Image source={logoBW} style={styles.logoBW} />
-            <Text style={styles.text}>Platita v2.0.0</Text>
+            <Text style={styles.text}>Platita v2.0.1</Text>
           </View>
         </View>
       </ScrollView>

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 
@@ -15,10 +16,12 @@ import { colors } from '../theme';
 
 void SplashScreen.preventAutoHideAsync().catch(() => {});
 
-SplashScreen.setOptions({
-  duration: 300,
-  fade: true,
-});
+if (Constants.executionEnvironment !== ExecutionEnvironment.StoreClient) {
+  SplashScreen.setOptions({
+    duration: 300,
+    fade: true,
+  });
+}
 
 const MINIMUM_LAUNCH_SCREEN_DURATION_MS = 1000;
 

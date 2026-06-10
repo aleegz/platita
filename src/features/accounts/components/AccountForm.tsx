@@ -26,7 +26,9 @@ import {
   ActionButton,
   FormFieldLabel,
   Screen,
+  SectionIntro,
   StateCard,
+  SurfaceCard,
   TopBarBackButton,
 } from '../../../components';
 import { createCurrencyFormatter } from '../../../lib/formatters';
@@ -56,6 +58,9 @@ type AccountFormProps = {
   isSubmitting?: boolean;
   onBackPress?: () => void;
   showActiveField?: boolean;
+  destructiveActionLabel?: string;
+  destructiveActionDescription?: string;
+  onDestructiveAction?: () => void;
   onSubmit: (values: AccountFormValues) => Promise<void> | void;
 };
 
@@ -73,6 +78,9 @@ export function AccountForm({
   isSubmitting = false,
   onBackPress,
   showActiveField = false,
+  destructiveActionLabel,
+  destructiveActionDescription,
+  onDestructiveAction,
   onSubmit,
 }: AccountFormProps) {
   const insets = useSafeAreaInsets();
@@ -368,6 +376,28 @@ export function AccountForm({
                 }, handleInvalidSubmit)}
               />
             </View>
+
+            {onDestructiveAction && destructiveActionLabel ? (
+              <SurfaceCard style={styles.destructiveCard}>
+                <SectionIntro
+                  description={
+                    destructiveActionDescription ??
+                    'Esta acción quita la cuenta del catálogo de forma permanente.'
+                  }
+                  iconColor={colors.danger}
+                  iconContainerStyle={styles.destructiveIntroIcon}
+                  iconName="trash-outline"
+                  style={styles.destructiveIntro}
+                  title="Eliminar cuenta"
+                />
+                <ActionButton
+                  iconName="trash-outline"
+                  label={destructiveActionLabel}
+                  onPress={onDestructiveAction}
+                  variant="danger"
+                />
+              </SurfaceCard>
+            ) : null}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -394,6 +424,17 @@ const styles = StyleSheet.create({
   },
   submitSection: {
     gap: 10,
+  },
+  destructiveCard: {
+    gap: 16,
+    borderColor: colors.danger,
+    backgroundColor: colors.surfaceError,
+  },
+  destructiveIntro: {
+    alignItems: 'flex-start',
+  },
+  destructiveIntroIcon: {
+    backgroundColor: '#F7D8D3',
   },
   fieldGroup: {
     gap: 10,
