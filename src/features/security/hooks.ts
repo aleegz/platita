@@ -21,6 +21,8 @@ type AppLockState = {
   unlock: () => Promise<boolean>;
 };
 
+const APP_LOCK_BACKGROUND_GRACE_PERIOD_MS = 60_000;
+
 const unavailableDeviceAuthenticationMessage =
   'Activa un método de desbloqueo en tu dispositivo para proteger la app.';
 
@@ -63,14 +65,21 @@ export function useAppLock(enabled: boolean, isReady: boolean): AppLockState {
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const appStateRef = useRef<AppStateStatus>(AppState.currentState);
+  const backgroundedAtRef = useRef<number | null>(null);
   const shouldRelockOnForegroundRef = useRef(false);
   const enabledRef = useRef(enabled);
   const isReadyRef = useRef(isReady);
   const isAuthenticatingRef = useRef(false);
+  const isLockedRef = useRef(enabled && isReady);
+
+  function updateLockState(nextIsLocked: boolean) {
+    isLockedRef.current = nextIsLocked;
+    setIsLocked(nextIsLocked);
+  }
 
   async function unlock() {
     if (!enabledRef.current || !isReadyRef.current) {
-      setIsLocked(false);
+      updateLockState(false);
       setErrorMessage(null);
       return true;
     }
@@ -78,7 +87,7 @@ export function useAppLock(enabled: boolean, isReady: boolean): AppLockState {
     const availability = await getDeviceAuthenticationAvailabilityAsync();
 
     if (!availability.isSupported) {
-      setIsLocked(false);
+      updateLockState(false);
       setErrorMessage(availability.errorMessage);
       return false;
     }
@@ -100,7 +109,7 @@ export function useAppLock(enabled: boolean, isReady: boolean): AppLockState {
       });
 
       if (result.success) {
-        setIsLocked(false);
+        updateLockState(false);
         setErrorMessage(null);
         return true;
       }
@@ -108,17 +117,17 @@ export function useAppLock(enabled: boolean, isReady: boolean): AppLockState {
       const nextErrorMessage = getAuthenticationErrorMessage(result.error);
 
       if (isDeviceConfigurationError(result.error)) {
-        setIsLocked(false);
+        updateLockState(false);
         setErrorMessage(nextErrorMessage);
         return false;
       }
 
-      setIsLocked(true);
+      updateLockState(true);
       setErrorMessage(nextErrorMessage);
       return false;
     } catch (error) {
       console.error(error);
-      setIsLocked(true);
+      updateLockState(true);
       setErrorMessage('No se pudo abrir el bloqueo del dispositivo.');
       return false;
     } finally {
@@ -132,13 +141,16 @@ export function useAppLock(enabled: boolean, isReady: boolean): AppLockState {
     isReadyRef.current = isReady;
 
     if (!enabled || !isReady) {
+      backgroundedAtRef.current = null;
       shouldRelockOnForegroundRef.current = false;
-      setIsLocked(false);
+      updateLockState(false);
       setErrorMessage(null);
       return;
     }
 
-    setIsLocked(true);
+    backgroundedAtRef.current = null;
+    shouldRelockOnForegroundRef.current = false;
+    updateLockState(true);
     void unlock();
   }, [enabled, isReady]);
 
@@ -160,8 +172,14 @@ export function useAppLock(enabled: boolean, isReady: boolean): AppLockState {
         (nextAppState === 'inactive' || nextAppState === 'background');
 
       if (movedToBackground) {
+        if (isLockedRef.current) {
+          backgroundedAtRef.current = null;
+          shouldRelockOnForegroundRef.current = false;
+          return;
+        }
+
+        backgroundedAtRef.current = Date.now();
         shouldRelockOnForegroundRef.current = true;
-        setIsLocked(true);
         return;
       }
 
@@ -170,8 +188,17 @@ export function useAppLock(enabled: boolean, isReady: boolean): AppLockState {
         nextAppState === 'active';
 
       if (returnedToForeground && shouldRelockOnForegroundRef.current) {
+        const backgroundedAt = backgroundedAtRef.current;
+        const timeInBackground =
+          backgroundedAt === null ? 0 : Date.now() - backgroundedAt;
+
+        backgroundedAtRef.current = null;
         shouldRelockOnForegroundRef.current = false;
-        void unlock();
+
+        if (timeInBackground >= APP_LOCK_BACKGROUND_GRACE_PERIOD_MS) {
+          updateLockState(true);
+          setErrorMessage(null);
+        }
       }
     });
 
