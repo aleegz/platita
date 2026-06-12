@@ -3,6 +3,11 @@
   "compilerOptions": {
     "strict": true,
     "baseUrl": ".",
+    "types": [
+      "jest",
+      "react",
+      "react-native"
+    ],
     "paths": {
       "@/*": [
         "./src/*"

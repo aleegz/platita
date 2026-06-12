@@ -320,6 +320,18 @@ Luego puedes abrir el proyecto en:
 - iOS: `npm run ios`
 - Web: `npm run web`
 
+### Ejecutar tests
+
+```bash
+npm test
+```
+
+Para dejar Jest en modo watch:
+
+```bash
+npm run test:watch
+```
+
 > Recomendación: para probar el bloqueo de la app y el flujo completo de autenticación, conviene usar dispositivo físico.
 
 ## Scripts disponibles
@@ -330,6 +342,8 @@ npm run android
 npm run ios
 npm run web
 npm run typecheck
+npm test
+npm run test:watch
 ```
 
 ## Estructura del proyecto
