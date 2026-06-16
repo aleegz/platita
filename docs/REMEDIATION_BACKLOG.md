@@ -48,7 +48,7 @@ Checklist vivo para corregir y madurar la aplicación en base a la revisión sen
   - queda claro cómo correr tests localmente
 - **Notas:** implementado con `jest` + `jest-expo`, alias `@/` en config, test inicial sobre `budget-calculations` y documentación básica en `README.md`
 
-### [ ] R2. Agregar tests al core financiero
+### [x] R2. Agregar tests al core financiero
 - **Prioridad:** crítica
 - **Depende de:** R1
 - **Archivos objetivo:**
@@ -62,7 +62,7 @@ Checklist vivo para corregir y madurar la aplicación en base a la revisión sen
   - cálculos de presupuestos cubiertos
   - casos borde de backup / SQLite cubiertos
   - casos de error relevantes cubiertos
-- **Notas:** priorizar lógica pura antes que UI
+- **Notas:** cubierto con tests unitarios sobre reglas de transacciones, normalización de bytes SQLite, validación defensiva de backups y lógica de indicadores/datos económicos; se mantuvo el enfoque en servicios y helpers puros antes que UI
 
 ### [ ] R3. Agregar ESLint + Prettier
 - **Prioridad:** alta
@@ -223,3 +223,8 @@ Checklist vivo para corregir y madurar la aplicación en base a la revisión sen
   - **Archivos tocados:** `package.json`, `package-lock.json`, `tsconfig.json`, `jest.config.cjs`, `jest.setup.ts`, `src/features/budgets/budget-calculations.test.ts`, `README.md`
   - **Validación:** `npm test -- --runInBand` y `npm run typecheck`
   - **Siguiente paso natural:** `R2. Agregar tests al core financiero`
+- **R2 completado**
+  - **Archivos tocados:** `src/features/transactions/service.test.ts`, `src/database/client/sqlite.test.ts`, `src/features/backup/service.test.ts`, `src/features/economicData/service.test.ts`, `src/features/economicData/live-indicators.ts`, `src/features/economicData/live-indicators.test.ts`, `src/features/economicData/hooks.ts`, `docs/REMEDIATION_BACKLOG.md`
+  - **Validación:** `npm test -- --runInBand` y `npm run typecheck`
+  - **Nota breve:** se agregó cobertura sobre validaciones de transacciones, paths defensivos de backup/import, normalización de imágenes SQLite para deserialize, y transformaciones económicas puras con una extracción mínima desde el hook
+  - **Siguiente paso natural:** `R3. Agregar ESLint + Prettier`
