@@ -73,7 +73,7 @@ Checklist vivo para corregir y madurar la aplicación en base a la revisión sen
   - el repo pasa lint sin errores críticos
 - **Notas:** implementado con flat config de Expo + Prettier; se desactivaron reglas nuevas de React Hooks/Compiler que hoy exigirían refactors más grandes, y el repo quedó pasando lint con warnings no bloqueantes
 
-### [ ] R4. Agregar CI mínimo
+### [x] R4. Agregar CI mínimo
 - **Prioridad:** alta
 - **Depende de:** R1, R3
 - **Archivos esperados:** `.github/workflows/check.yml`
@@ -82,6 +82,7 @@ Checklist vivo para corregir y madurar la aplicación en base a la revisión sen
   - CI corre `npm run typecheck`
   - CI corre `npm run lint`
   - CI corre `npm test`
+- **Notas:** implementado con GitHub Actions sobre `ubuntu-latest`, Node `20.19.4`, caché de npm y ejecución secuencial de install, typecheck, lint y tests
 
 ### [ ] R5. Reemplazar generación débil de IDs
 - **Prioridad:** alta
@@ -234,3 +235,8 @@ Checklist vivo para corregir y madurar la aplicación en base a la revisión sen
   - **Validación:** `npm run lint`, `npm run typecheck`, `npm test -- --runInBand`
   - **Nota breve:** se agregaron scripts y configuración base de ESLint/Prettier para Expo; lint ya corre sin errores, aunque quedaron warnings existentes para limpiar en tareas futuras
   - **Siguiente paso natural:** `R4. Agregar CI mínimo`
+- **R4 completado**
+  - **Archivos tocados:** `.github/workflows/check.yml`, `docs/REMEDIATION_BACKLOG.md`
+  - **Validación:** workflow revisado contra scripts existentes del repo (`npm ci`, `npm run typecheck`, `npm run lint`, `npm test -- --runInBand`)
+  - **Nota breve:** se agregó un workflow mínimo de GitHub Actions para pull requests y pushes a `main`, con caché de npm y validaciones básicas de calidad
+  - **Siguiente paso natural:** `R5. Reemplazar generación débil de IDs`
