@@ -116,11 +116,11 @@ function createImportedDatabase(overrides: {
 describe('createBackupService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    global.fetch = jest.fn();
+    globalThis.fetch = jest.fn() as typeof fetch;
   });
 
   it('returns a user-facing not found error when the selected file is missing on web', async () => {
-    (global.fetch as jest.Mock).mockResolvedValue({
+    (globalThis.fetch as jest.Mock).mockResolvedValue({
       ok: false,
       arrayBuffer: jest.fn(),
     });
@@ -138,7 +138,7 @@ describe('createBackupService', () => {
       schemaVersion: DATABASE_VERSION + 1,
     });
 
-    (global.fetch as jest.Mock).mockResolvedValue({
+    (globalThis.fetch as jest.Mock).mockResolvedValue({
       ok: true,
       arrayBuffer: jest.fn().mockResolvedValue(new ArrayBuffer(32)),
     });
@@ -166,7 +166,7 @@ describe('createBackupService', () => {
       tableNames: ['accounts', 'categories', 'transactions'],
     });
 
-    (global.fetch as jest.Mock).mockResolvedValue({
+    (globalThis.fetch as jest.Mock).mockResolvedValue({
       ok: true,
       arrayBuffer: jest.fn().mockResolvedValue(new ArrayBuffer(32)),
     });
@@ -200,7 +200,7 @@ describe('createBackupService', () => {
       profileDisplayName: 'Platita User',
     });
 
-    (global.fetch as jest.Mock).mockResolvedValue({
+    (globalThis.fetch as jest.Mock).mockResolvedValue({
       ok: true,
       arrayBuffer: jest.fn().mockResolvedValue(new ArrayBuffer(32)),
     });
