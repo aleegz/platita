@@ -332,6 +332,24 @@ Para dejar Jest en modo watch:
 npm run test:watch
 ```
 
+### Validar calidad de código
+
+```bash
+npm run lint
+```
+
+Para corregir issues auto-fixables de ESLint:
+
+```bash
+npm run lint:fix
+```
+
+Para formatear el proyecto con Prettier:
+
+```bash
+npm run format
+```
+
 > Recomendación: para probar el bloqueo de la app y el flujo completo de autenticación, conviene usar dispositivo físico.
 
 ## Scripts disponibles
@@ -342,6 +360,9 @@ npm run android
 npm run ios
 npm run web
 npm run typecheck
+npm run lint
+npm run lint:fix
+npm run format
 npm test
 npm run test:watch
 ```

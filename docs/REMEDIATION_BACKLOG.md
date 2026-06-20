@@ -64,13 +64,14 @@ Checklist vivo para corregir y madurar la aplicación en base a la revisión sen
   - casos de error relevantes cubiertos
 - **Notas:** cubierto con tests unitarios sobre reglas de transacciones, normalización de bytes SQLite, validación defensiva de backups y lógica de indicadores/datos económicos; se mantuvo el enfoque en servicios y helpers puros antes que UI
 
-### [ ] R3. Agregar ESLint + Prettier
+### [x] R3. Agregar ESLint + Prettier
 - **Prioridad:** alta
 - **Depende de:** nada
 - **Archivos esperados:** `package.json`, config de eslint, config de prettier
 - **Criterio de aceptación:**
   - existen scripts `lint`, `lint:fix`, `format`
   - el repo pasa lint sin errores críticos
+- **Notas:** implementado con flat config de Expo + Prettier; se desactivaron reglas nuevas de React Hooks/Compiler que hoy exigirían refactors más grandes, y el repo quedó pasando lint con warnings no bloqueantes
 
 ### [ ] R4. Agregar CI mínimo
 - **Prioridad:** alta
@@ -228,3 +229,8 @@ Checklist vivo para corregir y madurar la aplicación en base a la revisión sen
   - **Validación:** `npm test -- --runInBand` y `npm run typecheck`
   - **Nota breve:** se agregó cobertura sobre validaciones de transacciones, paths defensivos de backup/import, normalización de imágenes SQLite para deserialize, y transformaciones económicas puras con una extracción mínima desde el hook
   - **Siguiente paso natural:** `R3. Agregar ESLint + Prettier`
+- **R3 completado**
+  - **Archivos tocados:** `package.json`, `package-lock.json`, `eslint.config.cjs`, `.prettierrc.json`, `.prettierignore`, `README.md`, `docs/REMEDIATION_BACKLOG.md`
+  - **Validación:** `npm run lint`, `npm run typecheck`, `npm test -- --runInBand`
+  - **Nota breve:** se agregaron scripts y configuración base de ESLint/Prettier para Expo; lint ya corre sin errores, aunque quedaron warnings existentes para limpiar en tareas futuras
+  - **Siguiente paso natural:** `R4. Agregar CI mínimo`
