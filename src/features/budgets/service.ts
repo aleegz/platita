@@ -2,6 +2,7 @@ import { createBudgetRepository } from '../../database/repositories/budget.repos
 import { createCategoryRepository } from '../../database/repositories/category.repository';
 import { createTransactionRepository } from '../../database/repositories/transaction.repository';
 import { createUserFacingError } from '../../lib/errors';
+import { createEntityId } from '../../lib/id';
 import type { RepositoryDatabase } from '../../types/database';
 import type { MonthlyBudget } from '../../types/domain';
 
@@ -64,7 +65,7 @@ export function createBudgetService(
       const timestamp = createTimestamp();
 
       return budgetRepository.upsertMonthlyBudget({
-        id: existingBudget?.id ?? createBudgetId(),
+        id: existingBudget?.id ?? createEntityId('budget'),
         categoryId: input.categoryId,
         month: input.month,
         year: input.year,
@@ -78,10 +79,6 @@ export function createBudgetService(
 
 function createTimestamp() {
   return new Date().toISOString();
-}
-
-function createBudgetId() {
-  return `budget_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
 }
 
 function getPreviousBudgetPeriod(month: number, year: number) {

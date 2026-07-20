@@ -84,7 +84,7 @@ Checklist vivo para corregir y madurar la aplicación en base a la revisión sen
   - CI corre `npm test`
 - **Notas:** implementado con GitHub Actions sobre `ubuntu-latest`, Node `20.19.4`, caché de npm y ejecución secuencial de install, typecheck, lint y tests
 
-### [ ] R5. Reemplazar generación débil de IDs
+### [x] R5. Reemplazar generación débil de IDs
 - **Prioridad:** alta
 - **Depende de:** nada
 - **Archivos objetivo:**
@@ -96,6 +96,7 @@ Checklist vivo para corregir y madurar la aplicación en base a la revisión sen
 - **Criterio de aceptación:**
   - no se usa `Math.random()` para IDs de dominio
   - el mecanismo elegido funciona en el entorno objetivo de Expo
+- **Notas:** implementado con `expo-crypto` y un helper compartido `createEntityId(prefix)` para unificar la estrategia de IDs en todos los servicios de dominio
 
 ---
 
@@ -240,3 +241,8 @@ Checklist vivo para corregir y madurar la aplicación en base a la revisión sen
   - **Validación:** workflow revisado contra scripts existentes del repo (`npm ci`, `npm run typecheck`, `npm run lint`, `npm test -- --runInBand`)
   - **Nota breve:** se agregó un workflow mínimo de GitHub Actions para pull requests y pushes a `main`, con caché de npm y validaciones básicas de calidad
   - **Siguiente paso natural:** `R5. Reemplazar generación débil de IDs`
+- **R5 completado**
+  - **Archivos tocados:** `package.json`, `package-lock.json`, `src/lib/id.ts`, `src/lib/id.test.ts`, `src/features/accounts/service.ts`, `src/features/categories/service.ts`, `src/features/budgets/service.ts`, `src/features/economicData/service.ts`, `src/features/transactions/service.ts`, `docs/REMEDIATION_BACKLOG.md`
+  - **Validación:** `npm run typecheck`, `npm run lint`, `npm test -- --runInBand`
+  - **Nota breve:** se eliminó el uso de `Date.now() + Math.random()` para IDs de dominio y se centralizó la generación con UUIDs de `expo-crypto`
+  - **Siguiente paso natural:** `R6. Reemplazar invalidación manual con contadores`

@@ -1,6 +1,7 @@
 import { createAccountRepository } from '../../database/repositories/account.repository';
 import { createTransactionRepository } from '../../database/repositories/transaction.repository';
 import { createUserFacingError } from '../../lib/errors';
+import { createEntityId } from '../../lib/id';
 import type { RepositoryDatabase } from '../../types/database';
 import type { Account } from '../../types/domain';
 import type { SaveAccountInput } from './types';
@@ -25,7 +26,7 @@ export function createAccountService(
       const timestamp = createTimestamp();
 
       return repository.create({
-        id: createAccountId(),
+        id: createEntityId('account'),
         name: input.name,
         type: input.type,
         initialBalance: input.initialBalance,
@@ -82,8 +83,4 @@ export function createAccountService(
 
 function createTimestamp() {
   return new Date().toISOString();
-}
-
-function createAccountId() {
-  return `account_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
 }

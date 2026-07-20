@@ -1,4 +1,5 @@
 import { createEconomicDataRepository } from '../../database/repositories/economicData.repository';
+import { createEntityId } from '../../lib/id';
 import type { RepositoryDatabase } from '../../types/database';
 import type { EconomicData } from '../../types/domain';
 
@@ -51,7 +52,7 @@ export function createEconomicDataService(
       const timestamp = createTimestamp();
 
       return repository.upsertMonthlyEconomicData({
-        id: existingEntry?.id ?? createEconomicDataId(),
+        id: existingEntry?.id ?? createEntityId('economic_data'),
         month: input.month,
         year: input.year,
         dollarOfficial: input.dollarOfficial,
@@ -65,10 +66,4 @@ export function createEconomicDataService(
 
 function createTimestamp() {
   return new Date().toISOString();
-}
-
-function createEconomicDataId() {
-  return `economic_data_${Date.now()}_${Math.random()
-    .toString(36)
-    .slice(2, 10)}`;
 }

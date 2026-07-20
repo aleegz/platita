@@ -2,6 +2,7 @@ import { createAccountRepository } from '../../database/repositories/account.rep
 import { createCategoryRepository } from '../../database/repositories/category.repository';
 import { createTransactionRepository } from '../../database/repositories/transaction.repository';
 import { createUserFacingError } from '../../lib/errors';
+import { createEntityId } from '../../lib/id';
 import type { RepositoryDatabase } from '../../types/database';
 import type {
   Transaction,
@@ -73,7 +74,7 @@ export function createTransactionService(
       const timestamp = createTimestamp();
 
       return transactionRepository.create({
-        id: createTransactionId(),
+        id: createEntityId('transaction'),
         type: input.type,
         amount: input.amount,
         date: input.date,
@@ -208,10 +209,4 @@ function createTimestamp() {
 
 function resolveCategoryId(input: SaveTransactionInput) {
   return input.type === 'yield' ? yieldSystemCategoryId : input.categoryId;
-}
-
-function createTransactionId() {
-  return `transaction_${Date.now()}_${Math.random()
-    .toString(36)
-    .slice(2, 10)}`;
 }

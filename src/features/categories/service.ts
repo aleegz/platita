@@ -2,6 +2,7 @@ import { createBudgetRepository } from '../../database/repositories/budget.repos
 import { createCategoryRepository } from '../../database/repositories/category.repository';
 import { createTransactionRepository } from '../../database/repositories/transaction.repository';
 import { createUserFacingError } from '../../lib/errors';
+import { createEntityId } from '../../lib/id';
 import type { RepositoryDatabase } from '../../types/database';
 import type { Category } from '../../types/domain';
 
@@ -31,7 +32,7 @@ export function createCategoryService(
 
       try {
         return await repository.create({
-          id: createCategoryId(),
+          id: createEntityId('category'),
           name: input.name.trim(),
           type: input.type,
           active: input.active,
@@ -96,10 +97,6 @@ export function createCategoryService(
 
 function createTimestamp() {
   return new Date().toISOString();
-}
-
-function createCategoryId() {
-  return `category_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
 }
 
 function toCategoryUserFacingError(error: unknown) {
