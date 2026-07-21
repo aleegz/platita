@@ -1,13 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useIsFocused } from '@react-navigation/native';
 
 import { useDatabase } from '../../database/client/provider';
+import { emitDomainEvents, subscribeDomainEvents } from '../../lib/domain-events';
 import {
   createUserFacingError,
   getUserFacingMessage,
 } from '../../lib/errors';
 import { animateNextLayout } from '../../lib/motion';
-import { useDomainInvalidationStore } from '../../store/domain-invalidation.store';
 import type { Account } from '../../types/domain';
 import { createAccountService } from './service';
 import type { SaveAccountInput } from './types';
@@ -46,7 +46,7 @@ export function useAccounts(options?: UseAccountsOptions): AccountsState {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const includeInactive = options?.includeInactive ?? false;
 
-  async function refresh() {
+  const refresh = useCallback(async () => {
     setIsLoading(true);
     setErrorMessage(null);
 
@@ -69,7 +69,7 @@ export function useAccounts(options?: UseAccountsOptions): AccountsState {
     } finally {
       setIsLoading(false);
     }
-  }
+  }, [database, includeInactive]);
 
   useEffect(() => {
     if (!isFocused) {
@@ -77,7 +77,11 @@ export function useAccounts(options?: UseAccountsOptions): AccountsState {
     }
 
     void refresh();
-  }, [isFocused, database, includeInactive]);
+
+    return subscribeDomainEvents(['accountsChanged'], () => {
+      void refresh();
+    });
+  }, [isFocused, refresh]);
 
   return {
     accounts,
@@ -94,7 +98,7 @@ export function useAccount(accountId?: string): AccountState {
   const [isLoading, setIsLoading] = useState(Boolean(accountId));
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  async function refresh() {
+  const refresh = useCallback(async () => {
     if (!accountId) {
       animateNextLayout();
       setAccount(null);
@@ -125,7 +129,7 @@ export function useAccount(accountId?: string): AccountState {
     } finally {
       setIsLoading(false);
     }
-  }
+  }, [accountId, database]);
 
   useEffect(() => {
     if (!isFocused) {
@@ -133,7 +137,11 @@ export function useAccount(accountId?: string): AccountState {
     }
 
     void refresh();
-  }, [accountId, isFocused, database]);
+
+    return subscribeDomainEvents(['accountsChanged'], () => {
+      void refresh();
+    });
+  }, [isFocused, refresh]);
 
   return {
     account,
@@ -145,12 +153,6 @@ export function useAccount(accountId?: string): AccountState {
 
 export function useAccountMutations(): AccountMutations {
   const database = useDatabase();
-  const invalidateTransactions = useDomainInvalidationStore(
-    (state) => state.invalidateTransactions
-  );
-  const invalidateTransactionReferences = useDomainInvalidationStore(
-    (state) => state.invalidateTransactionReferences
-  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -161,7 +163,7 @@ export function useAccountMutations(): AccountMutations {
     try {
       const account = await createAccountService(database).createAccount(input);
 
-      invalidateTransactionReferences();
+      emitDomainEvents('accountsChanged', 'transactionReferencesChanged');
 
       return account;
     } catch (error) {
@@ -186,7 +188,7 @@ export function useAccountMutations(): AccountMutations {
         );
       }
 
-      invalidateTransactionReferences();
+      emitDomainEvents('accountsChanged', 'transactionReferencesChanged');
 
       return account;
     } catch (error) {
@@ -208,8 +210,7 @@ export function useAccountMutations(): AccountMutations {
     try {
       await createAccountService(database).deleteAccount(id);
 
-      invalidateTransactions();
-      invalidateTransactionReferences();
+      emitDomainEvents('accountsChanged', 'transactionReferencesChanged');
     } catch (error) {
       const userMessage = getUserFacingMessage(error, 'No se pudo eliminar la cuenta.');
 

@@ -1,13 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useIsFocused } from '@react-navigation/native';
 
 import { useDatabase } from '../../database/client/provider';
+import { emitDomainEvents, subscribeDomainEvents } from '../../lib/domain-events';
 import {
   createUserFacingError,
   getUserFacingMessage,
 } from '../../lib/errors';
 import { animateNextLayout } from '../../lib/motion';
-import { useDomainInvalidationStore } from '../../store/domain-invalidation.store';
 import type { Category } from '../../types/domain';
 
 import { createCategoryService } from './service';
@@ -41,7 +41,7 @@ export function useCategories(): CategoriesState {
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  async function refresh() {
+  const refresh = useCallback(async () => {
     setIsLoading(true);
     setErrorMessage(null);
 
@@ -57,7 +57,7 @@ export function useCategories(): CategoriesState {
     } finally {
       setIsLoading(false);
     }
-  }
+  }, [database]);
 
   useEffect(() => {
     if (!isFocused) {
@@ -65,7 +65,11 @@ export function useCategories(): CategoriesState {
     }
 
     void refresh();
-  }, [isFocused, database]);
+
+    return subscribeDomainEvents(['categoriesChanged'], () => {
+      void refresh();
+    });
+  }, [isFocused, refresh]);
 
   return {
     categories,
@@ -82,7 +86,7 @@ export function useCategory(categoryId?: string): CategoryState {
   const [isLoading, setIsLoading] = useState(Boolean(categoryId));
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  async function refresh() {
+  const refresh = useCallback(async () => {
     if (!categoryId) {
       animateNextLayout();
       setCategory(null);
@@ -115,7 +119,7 @@ export function useCategory(categoryId?: string): CategoryState {
     } finally {
       setIsLoading(false);
     }
-  }
+  }, [categoryId, database]);
 
   useEffect(() => {
     if (!isFocused) {
@@ -123,7 +127,11 @@ export function useCategory(categoryId?: string): CategoryState {
     }
 
     void refresh();
-  }, [categoryId, isFocused, database]);
+
+    return subscribeDomainEvents(['categoriesChanged'], () => {
+      void refresh();
+    });
+  }, [isFocused, refresh]);
 
   return {
     category,
@@ -135,9 +143,6 @@ export function useCategory(categoryId?: string): CategoryState {
 
 export function useCategoryMutations(): CategoryMutations {
   const database = useDatabase();
-  const invalidateTransactionReferences = useDomainInvalidationStore(
-    (state) => state.invalidateTransactionReferences
-  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -148,7 +153,11 @@ export function useCategoryMutations(): CategoryMutations {
     try {
       const category = await createCategoryService(database).createCategory(input);
 
-      invalidateTransactionReferences();
+      emitDomainEvents(
+        'categoriesChanged',
+        'transactionReferencesChanged',
+        'budgetsChanged'
+      );
 
       return category;
     } catch (error) {
@@ -175,7 +184,11 @@ export function useCategoryMutations(): CategoryMutations {
         );
       }
 
-      invalidateTransactionReferences();
+      emitDomainEvents(
+        'categoriesChanged',
+        'transactionReferencesChanged',
+        'budgetsChanged'
+      );
 
       return category;
     } catch (error) {

@@ -102,7 +102,7 @@ Checklist vivo para corregir y madurar la aplicación en base a la revisión sen
 
 ## Fase 2 — Estado y sincronización de datos
 
-### [ ] R6. Reemplazar invalidación manual con contadores
+### [x] R6. Reemplazar invalidación manual con contadores
 - **Prioridad:** crítica
 - **Depende de:** idealmente R1 para poder refactorizar con red de seguridad
 - **Archivos objetivo:**
@@ -114,7 +114,7 @@ Checklist vivo para corregir y madurar la aplicación en base a la revisión sen
 - **Criterio de aceptación:**
   - desaparece el patrón `version++` como base de refresco
   - las mutaciones invalidan/actualizan datos de forma declarativa y consistente
-- **Notas:** alternativa recomendada: TanStack Query; alternativa manual: event bus bien definido
+- **Notas:** resuelto con un event bus explícito en `src/lib/domain-events.ts`, eliminando el patrón `version++`; las mutaciones emiten eventos de dominio y los hooks relevantes se resuscriben/recargan de forma consistente
 
 ### [ ] R7. Sacar lógica pesada de `economicData/hooks.ts`
 - **Prioridad:** alta
@@ -239,10 +239,15 @@ Checklist vivo para corregir y madurar la aplicación en base a la revisión sen
 - **R4 completado**
   - **Archivos tocados:** `.github/workflows/check.yml`, `docs/REMEDIATION_BACKLOG.md`
   - **Validación:** workflow revisado contra scripts existentes del repo (`npm ci`, `npm run typecheck`, `npm run lint`, `npm test -- --runInBand`)
-  - **Nota breve:** se agregó un workflow mínimo de GitHub Actions para pull requests y pushes a `main`, con caché de npm y validaciones básicas de calidad
+  - **Nota breve:** se agregó un workflow mínimo de GitHub Actions para pull requests y pushes a `master`, con caché de npm y validaciones básicas de calidad
   - **Siguiente paso natural:** `R5. Reemplazar generación débil de IDs`
 - **R5 completado**
   - **Archivos tocados:** `package.json`, `package-lock.json`, `src/lib/id.ts`, `src/lib/id.test.ts`, `src/features/accounts/service.ts`, `src/features/categories/service.ts`, `src/features/budgets/service.ts`, `src/features/economicData/service.ts`, `src/features/transactions/service.ts`, `docs/REMEDIATION_BACKLOG.md`
   - **Validación:** `npm run typecheck`, `npm run lint`, `npm test -- --runInBand`
   - **Nota breve:** se eliminó el uso de `Date.now() + Math.random()` para IDs de dominio y se centralizó la generación con UUIDs de `expo-crypto`
   - **Siguiente paso natural:** `R6. Reemplazar invalidación manual con contadores`
+- **R6 completado**
+  - **Archivos tocados:** `src/lib/domain-events.ts`, `src/lib/domain-events.test.ts`, `src/features/accounts/hooks.ts`, `src/features/categories/hooks.ts`, `src/features/budgets/hooks.ts`, `src/features/transactions/hooks.ts`, `docs/REMEDIATION_BACKLOG.md`
+  - **Validación:** `npm run typecheck`, `npm run lint`, `npm test -- --runInBand`
+  - **Nota breve:** se eliminó el store de invalidación con contadores y se lo reemplazó por eventos de dominio explícitos, mejorando consistencia entre mutaciones y pantallas dependientes
+  - **Siguiente paso natural:** `R7. Sacar lógica pesada de economicData/hooks.ts`

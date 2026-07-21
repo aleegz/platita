@@ -1,16 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import { useDatabase } from '../../database/client/provider';
+import { emitDomainEvents, subscribeDomainEvents } from '../../lib/domain-events';
 import {
   createUserFacingError,
   getUserFacingMessage,
 } from '../../lib/errors';
 import { animateNextLayout } from '../../lib/motion';
 import { useAppStore, appStoreSelectors } from '../../store/app.store';
-import {
-  domainInvalidationStoreSelectors,
-  useDomainInvalidationStore,
-} from '../../store/domain-invalidation.store';
 import {
   useFiltersStore,
   filtersStoreSelectors,
@@ -51,15 +48,12 @@ type TransactionMutations = {
 
 export function useTransactionReferenceData(): TransactionReferenceState {
   const database = useDatabase();
-  const referenceDataVersion = useDomainInvalidationStore(
-    domainInvalidationStoreSelectors.transactionReferencesVersion
-  );
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  async function refresh() {
+  const refresh = useCallback(async () => {
     setIsLoading(true);
     setErrorMessage(null);
 
@@ -76,11 +70,15 @@ export function useTransactionReferenceData(): TransactionReferenceState {
     } finally {
       setIsLoading(false);
     }
-  }
+  }, [database]);
 
   useEffect(() => {
     void refresh();
-  }, [database, referenceDataVersion]);
+
+    return subscribeDomainEvents(['transactionReferencesChanged'], () => {
+      void refresh();
+    });
+  }, [refresh]);
 
   return {
     accounts,
@@ -95,12 +93,6 @@ export function useTransactions(): TransactionsState {
   const database = useDatabase();
   const selectedMonth = useAppStore(appStoreSelectors.selectedMonth);
   const selectedYear = useAppStore(appStoreSelectors.selectedYear);
-  const transactionsVersion = useDomainInvalidationStore(
-    domainInvalidationStoreSelectors.transactionsVersion
-  );
-  const referenceDataVersion = useDomainInvalidationStore(
-    domainInvalidationStoreSelectors.transactionReferencesVersion
-  );
   const transactionFilters = useFiltersStore(
     filtersStoreSelectors.transactionFilters
   );
@@ -110,7 +102,7 @@ export function useTransactions(): TransactionsState {
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  async function refresh() {
+  const refresh = useCallback(async () => {
     setIsLoading(true);
     setErrorMessage(null);
 
@@ -150,20 +142,25 @@ export function useTransactions(): TransactionsState {
     } finally {
       setIsLoading(false);
     }
-  }
+  }, [
+    database,
+    selectedMonth,
+    selectedYear,
+    transactionFilters.accountId,
+    transactionFilters.categoryId,
+    transactionFilters.type,
+  ]);
 
   useEffect(() => {
     void refresh();
-  }, [
-    database,
-    transactionsVersion,
-    referenceDataVersion,
-    selectedMonth,
-    selectedYear,
-    transactionFilters.type,
-    transactionFilters.accountId,
-    transactionFilters.categoryId,
-  ]);
+
+    return subscribeDomainEvents(
+      ['transactionsChanged', 'transactionReferencesChanged'],
+      () => {
+        void refresh();
+      }
+    );
+  }, [refresh]);
 
   return {
     transactions,
@@ -180,12 +177,6 @@ export function useTransactions(): TransactionsState {
 
 export function useTransactionMutations(): TransactionMutations {
   const database = useDatabase();
-  const invalidateTransactions = useDomainInvalidationStore(
-    (state) => state.invalidateTransactions
-  );
-  const invalidateBudgets = useDomainInvalidationStore(
-    (state) => state.invalidateBudgets
-  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -196,8 +187,7 @@ export function useTransactionMutations(): TransactionMutations {
     try {
       const transaction = await createTransactionService(database).createTransaction(input);
 
-      invalidateTransactions();
-      invalidateBudgets();
+      emitDomainEvents('transactionsChanged', 'budgetsChanged');
 
       return transaction;
     } catch (error) {
@@ -217,8 +207,7 @@ export function useTransactionMutations(): TransactionMutations {
 
     try {
       await createTransactionService(database).deleteTransaction(id);
-      invalidateTransactions();
-      invalidateBudgets();
+      emitDomainEvents('transactionsChanged', 'budgetsChanged');
     } catch (error) {
       console.error(error);
       setErrorMessage(
@@ -246,8 +235,7 @@ export function useTransactionMutations(): TransactionMutations {
         );
       }
 
-      invalidateTransactions();
-      invalidateBudgets();
+      emitDomainEvents('transactionsChanged', 'budgetsChanged');
 
       return transaction;
     } catch (error) {

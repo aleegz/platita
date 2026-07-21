@@ -1,17 +1,18 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import { useDatabase } from '../../database/client/provider';
+import { emitDomainEvents, subscribeDomainEvents } from '../../lib/domain-events';
 import { getUserFacingMessage } from '../../lib/errors';
 import { animateNextLayout } from '../../lib/motion';
 import { appStoreSelectors, useAppStore } from '../../store/app.store';
-import {
-  domainInvalidationStoreSelectors,
-  useDomainInvalidationStore,
-} from '../../store/domain-invalidation.store';
 import type { MonthlyBudget } from '../../types/domain';
 
 import { createBudgetService } from './service';
-import { createEmptyBudgetsData, type BudgetsData, type UpsertBudgetInput } from './types';
+import {
+  createEmptyBudgetsData,
+  type BudgetsData,
+  type UpsertBudgetInput,
+} from './types';
 
 type BudgetsState = {
   data: BudgetsData;
@@ -32,16 +33,13 @@ export function useBudgets(): BudgetsState {
   const database = useDatabase();
   const selectedMonth = useAppStore(appStoreSelectors.selectedMonth);
   const selectedYear = useAppStore(appStoreSelectors.selectedYear);
-  const budgetsVersion = useDomainInvalidationStore(
-    domainInvalidationStoreSelectors.budgetsVersion
-  );
   const [data, setData] = useState<BudgetsData>(() =>
     createEmptyBudgetsData(selectedMonth, selectedYear)
   );
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  async function refresh() {
+  const refresh = useCallback(async () => {
     setIsLoading(true);
     setErrorMessage(null);
 
@@ -61,11 +59,15 @@ export function useBudgets(): BudgetsState {
     } finally {
       setIsLoading(false);
     }
-  }
+  }, [database, selectedMonth, selectedYear]);
 
   useEffect(() => {
     void refresh();
-  }, [database, budgetsVersion, selectedMonth, selectedYear]);
+
+    return subscribeDomainEvents(['budgetsChanged'], () => {
+      void refresh();
+    });
+  }, [refresh]);
 
   return {
     data,
@@ -79,9 +81,6 @@ export function useBudgets(): BudgetsState {
 
 export function useBudgetMutations(): BudgetMutations {
   const database = useDatabase();
-  const invalidateBudgets = useDomainInvalidationStore(
-    (state) => state.invalidateBudgets
-  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -92,7 +91,7 @@ export function useBudgetMutations(): BudgetMutations {
     try {
       const budget = await createBudgetService(database).upsertBudget(input);
 
-      invalidateBudgets();
+      emitDomainEvents('budgetsChanged');
 
       return budget;
     } catch (error) {
